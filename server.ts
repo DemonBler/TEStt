@@ -1,60 +1,67 @@
-import express from "express";
-import { createServer as createViteServer } from "vite";
-import path from "path";
-import { fileURLToPath } from "url";
-import si from "systeminformation";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+import express from 'express';
+import { createServer as createViteServer } from 'vite';
+import { WebSocketServer, WebSocket } from 'ws';
+import http from 'http';
+import path from 'path';
 
 async function startServer() {
   const app = express();
+  const server = http.createServer(app);
   const PORT = 3000;
 
-  app.use(express.json());
+  // --- OMNI-GENESIS BACKEND: PONTE DE HARDWARE (WEB SOCKET) ---
+  // Este servidor WebSocket é a ponte entre os seus scripts locais (Python/OpenClaw/OpenCV)
+  // e a interface React (Three.js/VRM).
+  const wss = new WebSocketServer({ server });
 
-  // API Route for System Stats (PSUtil equivalent)
-  app.get("/api/system/stats", async (req, res) => {
-    try {
-      const [cpu, mem, graphics, temp] = await Promise.all([
-        si.currentLoad(),
-        si.mem(),
-        si.graphics(),
-        si.cpuTemperature()
-      ]);
+  wss.on('connection', (ws: WebSocket) => {
+    console.log('[OMNI-GENESIS BACKEND] Cliente conectado ao stream de hardware.');
 
-      res.json({
-        cpu: Math.round(cpu.currentLoad),
-        ram: Math.round((mem.active / mem.total) * 100),
-        vram: Math.round(Math.random() * 20) + 10, // Fallback for VRAM usage
-        temp: Math.round(temp.main || 45),
-        gpuName: graphics.controllers[0]?.model || "RTX 4060",
-        cpuName: "Ryzen 5 5600X"
-      });
-    } catch (error) {
-      res.status(500).json({ error: "Failed to fetch system stats" });
-    }
+    // Aqui, o seu script Python (OpenClaw) enviaria dados para este servidor Node.
+    // Para fins de demonstração (quando você baixar e rodar sem o Python),
+    // o servidor Node vai gerar um sinal de "respiração/idle" para manter o VRM vivo.
+    const interval = setInterval(() => {
+      if (ws.readyState !== WebSocket.OPEN) return;
+      
+      const time = Date.now() / 1000;
+      
+      // Enviando dados de Cinemática Inversa (IK) falsos para a cabeça do VRM
+      // O seu script Python deve enviar JSONs neste exato formato.
+      ws.send(JSON.stringify({
+        type: 'vrm_ik',
+        data: {
+          head: {
+            rotation: [
+              Math.sin(time) * 0.05, // Pitch (x)
+              Math.cos(time * 0.5) * 0.1, // Yaw (y)
+              0 // Roll (z)
+            ]
+          }
+        }
+      }));
+    }, 1000 / 30); // 30 FPS Stream
+
+    ws.on('message', (message) => {
+      // Recebe comandos do Python (ex: "executar script VDI", "mover mouse")
+      console.log(`[OMNI-GENESIS BACKEND] Comando recebido do hardware: ${message}`);
+    });
+
+    ws.on('close', () => {
+      clearInterval(interval);
+      console.log('[OMNI-GENESIS BACKEND] Cliente desconectado.');
+    });
   });
 
-  // API Route for System Logs (Simulation)
-  app.get("/api/system/logs", (req, res) => {
-    const logs = [
-      "SYS_INIT: Núcleo Omni-Genesis carregado.",
-      "OLLAMA_CORE: Modelo Llama 3 (Uncensored) ativo em localhost:11434.",
-      "WHISPER_ENGINE: Faster-Whisper (PT-BR) pronto para audição.",
-      "PIPER_TTS: Síntese de voz feminina (.onnx) carregada na RAM.",
-      "ACE_BRIDGE: Conexão gRPC com NVIDIA Audio2Face estabelecida.",
-      "WARUDO_SYNC: Palco 3D sincronizado com blendshapes.",
-      "CANARY_WATCH: Monitorando Ryzen 5 5600X e RTX 4060."
-    ];
-    res.json({ logs });
+  // --- API REST ---
+  app.get('/api/health', (req, res) => {
+    res.json({ status: 'ok', message: 'Omni-Genesis Backend Ativo' });
   });
 
-  // Vite middleware for development
-  if (process.env.NODE_ENV !== "production") {
+  // --- VITE MIDDLEWARE (FRONTEND) ---
+  if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({
       server: { middlewareMode: true },
-      appType: "spa",
+      appType: 'spa',
     });
     app.use(vite.middlewares);
   } else {
@@ -65,8 +72,9 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`[OMNI-GENESIS] Servidor rodando em http://localhost:${PORT}`);
+  server.listen(PORT, '0.0.0.0', () => {
+    console.log(`\n[OMNI-GENESIS] Servidor Full-Stack rodando em http://localhost:${PORT}`);
+    console.log(`[OMNI-GENESIS] Ponte WebSocket aberta em ws://localhost:${PORT}\n`);
   });
 }
 
