@@ -1,0 +1,48 @@
+# docker-compose.yml para Omni-Genesis Core (Local)
+# Execute com: docker-compose up -d
+
+version: '3.8'
+
+services:
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  nvidia-ace:
+    image: nvcr.io/nvidia/ace/audio2face:latest
+    container_name: audio2face
+    ports:
+      - "50051:50051"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  vaelindra-backend:
+    build: .
+    container_name: vaelindra-core
+    ports:
+      - "8000:8000"
+    environment:
+      - OLLAMA_HOST=http://ollama:11434
+      - ACE_HOST=audio2face:50051
+    depends_on:
+      - ollama
+      - nvidia-ace
+
+volumes:
+  ollama_data:

@@ -1,0 +1,9 @@
+{
+  "name": "Omni-Genesis VTuber Core v5.0",
+  "description": "Núcleo de IA VTuber Soberano (Vaelindra). Integração Real: Ollama, Faster-Whisper, Piper, NVIDIA ACE, OBS v5 e Warudo. Estética Extreme Canary (D:\\ drive).",
+  "requestFramePermissions": [
+    "camera",
+    "microphone",
+    "geolocation"
+  ]
+}
