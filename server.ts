@@ -1,80 +1,84 @@
-import express from 'express';
-import { createServer as createViteServer } from 'vite';
-import { WebSocketServer, WebSocket } from 'ws';
-import http from 'http';
-import path from 'path';
+import express from "express";
+import { createServer as createViteServer } from "vite";
+import { WebSocketServer, WebSocket } from "ws";
+import path from "path";
+import { fileURLToPath } from "url";
+import si from "systeminformation";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 async function startServer() {
   const app = express();
-  const server = http.createServer(app);
   const PORT = 3000;
 
-  // --- OMNI-GENESIS BACKEND: PONTE DE HARDWARE (WEB SOCKET) ---
-  // Este servidor WebSocket é a ponte entre os seus scripts locais (Python/OpenClaw/OpenCV)
-  // e a interface React (Three.js/VRM).
-  const wss = new WebSocketServer({ server });
-
-  wss.on('connection', (ws: WebSocket) => {
-    console.log('[OMNI-GENESIS BACKEND] Cliente conectado ao stream de hardware.');
-
-    // Aqui, o seu script Python (OpenClaw) enviaria dados para este servidor Node.
-    // Para fins de demonstração (quando você baixar e rodar sem o Python),
-    // o servidor Node vai gerar um sinal de "respiração/idle" para manter o VRM vivo.
-    const interval = setInterval(() => {
-      if (ws.readyState !== WebSocket.OPEN) return;
+  // API for Hardware Telemetry
+  app.get("/api/telemetry", async (req, res) => {
+    try {
+      const cpu = await si.cpu();
+      const mem = await si.mem();
+      const gpu = await si.graphics();
+      const load = await si.currentLoad();
       
-      const time = Date.now() / 1000;
-      
-      // Enviando dados de Cinemática Inversa (IK) falsos para a cabeça do VRM
-      // O seu script Python deve enviar JSONs neste exato formato.
-      ws.send(JSON.stringify({
-        type: 'vrm_ik',
-        data: {
-          head: {
-            rotation: [
-              Math.sin(time) * 0.05, // Pitch (x)
-              Math.cos(time * 0.5) * 0.1, // Yaw (y)
-              0 // Roll (z)
-            ]
-          }
-        }
-      }));
-    }, 1000 / 30); // 30 FPS Stream
-
-    ws.on('message', (message) => {
-      // Recebe comandos do Python (ex: "executar script VDI", "mover mouse")
-      console.log(`[OMNI-GENESIS BACKEND] Comando recebido do hardware: ${message}`);
-    });
-
-    ws.on('close', () => {
-      clearInterval(interval);
-      console.log('[OMNI-GENESIS BACKEND] Cliente desconectado.');
-    });
+      res.json({
+        cpu: {
+          brand: cpu.brand,
+          load: load.currentLoad,
+          temp: (await si.cpuTemperature()).main
+        },
+        mem: {
+          total: mem.total,
+          active: mem.active,
+          swaptotal: mem.swaptotal,
+          swapused: mem.swapused
+        },
+        gpu: gpu.controllers.map(g => ({
+          model: g.model,
+          vram: g.vram,
+          utilization: g.utilizationGpu,
+          temp: g.temperatureGpu
+        }))
+      });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch telemetry" });
+    }
   });
 
-  // --- API REST ---
-  app.get('/api/health', (req, res) => {
-    res.json({ status: 'ok', message: 'Omni-Genesis Backend Ativo' });
-  });
-
-  // --- VITE MIDDLEWARE (FRONTEND) ---
-  if (process.env.NODE_ENV !== 'production') {
+  // Vite middleware for development
+  if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
       server: { middlewareMode: true },
-      appType: 'spa',
+      appType: "spa",
     });
     app.use(vite.middlewares);
   } else {
-    const distPath = path.join(process.cwd(), 'dist');
+    const distPath = path.join(process.cwd(), "dist");
     app.use(express.static(distPath));
-    app.get('*', (req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
+    app.get("*", (req, res) => {
+      res.sendFile(path.join(distPath, "index.html"));
     });
   }
 
-  server.listen(PORT, '0.0.0.0', () => {
-    console.log(`\n[OMNI-GENESIS] Servidor Full-Stack rodando em http://localhost:${PORT}`);
-    console.log(`[OMNI-GENESIS] Ponte WebSocket aberta em ws://localhost:${PORT}\n`);
+  const server = app.listen(PORT, "0.0.0.0", () => {
+    console.log(`[Sovereign Core] Server running on http://localhost:${PORT}`);
+  });
+
+  // WebSocket Server for VMC/OSC Bridge
+  const wss = new WebSocketServer({ server });
+
+  wss.on("connection", (ws) => {
+    console.log("[VMC Bridge] Client connected");
+    
+    ws.on("message", (data) => {
+      // Broadcast VMC data to all clients (React frontend)
+      wss.clients.forEach((client) => {
+        if (client !== ws && client.readyState === WebSocket.OPEN) {
+          client.send(data);
+        }
+      });
+    });
+
+    ws.on("close", () => console.log("[VMC Bridge] Client disconnected"));
   });
 }
 

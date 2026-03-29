@@ -1,9 +1,8 @@
 {
-  "name": "Omni-Genesis VTuber Core v5.0",
-  "description": "Núcleo de IA VTuber Soberano (Vaelindra). Integração Real: Ollama, Faster-Whisper, Piper, NVIDIA ACE, OBS v5 e Warudo. Estética Extreme Canary (D:\\ drive).",
+  "name": "Vaelindra Sovereign Core v5.0",
+  "description": "Núcleo de IA VTuber Soberano (Vaelindra). Integração Nativa: NVIDIA ACE, VMC Protocol, Ollama e Telemetria Extreme Canary.",
   "requestFramePermissions": [
     "camera",
-    "microphone",
-    "geolocation"
+    "microphone"
   ]
 }
