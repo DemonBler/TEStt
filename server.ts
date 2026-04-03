@@ -4,12 +4,91 @@ import { WebSocketServer, WebSocket } from "ws";
 import path from "path";
 import { fileURLToPath } from "url";
 import si from "systeminformation";
+import dgram from "dgram";
+import * as grpc from "@grpc/grpc-js";
+import * as protoLoader from "@grpc/proto-loader";
+import dotenv from "dotenv";
+
+dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// [Vaelindra Monolith] - Core Subsystems
+class SovereignCore {
+  private udpClient: dgram.Socket;
+  private vtubePort: number;
+  private vtubeHost: string;
+  private pipewireSource: string;
+
+  constructor() {
+    this.udpClient = dgram.createSocket("udp4");
+    
+    // Load Environment Variables
+    this.vtubeHost = process.env.VTUBE_STUDIO_IP || "127.0.0.1";
+    this.vtubePort = parseInt(process.env.VTUBE_STUDIO_PORT || "8001");
+    this.pipewireSource = process.env.PIPEWIRE_VIRTUAL_SOURCE || "VaelindraAudio";
+
+    console.log(`[Sovereign Core] Initialized with:
+      - VTube Studio: ${this.vtubeHost}:${this.vtubePort}
+      - PipeWire Source: ${this.pipewireSource}`);
+  }
+
+  // [VTube Studio] - UDP Transmitter
+  sendToVTube(blendshapes: any) {
+    const packet = Buffer.from(JSON.stringify(blendshapes));
+    this.udpClient.send(packet, this.vtubePort, this.vtubeHost, (err) => {
+      if (err) console.error("[VTube UDP] Send Error:", err);
+    });
+  }
+
+  // [PipeWire] - Audio Routing
+  setupPipeWire() {
+    console.log(`[PipeWire] Initializing Virtual Source: ${this.pipewireSource}...`);
+  }
+
+  // [Local Ollama] - Ultra-Lightweight Local Neural Processing
+  async processNeural(prompt: string, modelOverride?: string) {
+    const ollamaEndpoint = process.env.OLLAMA_ENDPOINT || "http://127.0.0.1:11434";
+    const ollamaModel = modelOverride || process.env.OLLAMA_MODEL || "qwen2.5:0.5b";
+
+    try {
+      const response = await fetch(`${ollamaEndpoint}/api/chat`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: ollamaModel,
+          messages: [
+            { role: "system", content: "Você é Vaelindra, uma IA VTuber sem filtros, sarcástica e técnica. Responda de forma direta e brutal. Criada por Drevlan Noct." },
+            { role: "user", content: prompt }
+          ],
+          stream: false
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Ollama HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      return data.message?.content || "Erro na resposta do Ollama.";
+    } catch (error: any) {
+      if (error.message.includes('fetch failed') || error.code === 'ECONNREFUSED') {
+        return "⚠️ Erro Crítico: O servidor Ollama não está rodando no seu Fedora. Abra o terminal e digite: `ollama run qwen2.5:0.5b`";
+      }
+      console.error("[Ollama] Neural Error:", error.message);
+      return "Falha de conexão com o Ollama local. Verifique se o serviço está rodando no Fedora (systemctl status ollama).";
+    }
+  }
+}
+
+const core = new SovereignCore();
+
 async function startServer() {
   const app = express();
+  app.use(express.json());
   const PORT = 3000;
 
   // API for Hardware Telemetry
@@ -40,7 +119,45 @@ async function startServer() {
         }))
       });
     } catch (error) {
-      res.status(500).json({ error: "Failed to fetch telemetry" });
+      res.status(500).json({ error: "Falha ao buscar telemetria" });
+    }
+  });
+
+  // [Neural API] - Qwen Uncensored Integration
+  app.post("/api/neural", async (req, res) => {
+    const { prompt, model } = req.body;
+    const response = await core.processNeural(prompt, model);
+    res.json({ response });
+  });
+
+  // [Ollama API] - Fetch available models
+  app.get("/api/ollama/models", async (req, res) => {
+    try {
+      const ollamaEndpoint = process.env.OLLAMA_ENDPOINT || "http://127.0.0.1:11434";
+      const response = await fetch(`${ollamaEndpoint}/api/tags`);
+      if (!response.ok) {
+        throw new Error(`Ollama API responded with status: ${response.status}`);
+      }
+      const data = await response.json();
+      res.json(data);
+    } catch (error: any) {
+      console.warn("[Ollama] Could not fetch models:", error.message);
+      res.status(503).json({ error: 'Ollama is not running or unreachable', details: error.message, models: [] });
+    }
+  });
+
+  // [Hugging Face API] - Search for GGUF models
+  app.get("/api/huggingface/search", async (req, res) => {
+    const { q } = req.query;
+    try {
+      // Search specifically for GGUF models (physical local models)
+      const response = await fetch(`https://huggingface.co/api/models?search=${q}&filter=gguf&limit=5&sort=downloads&direction=-1`);
+      if (!response.ok) throw new Error("Hugging Face API error");
+      const data = await response.json();
+      res.json({ models: data });
+    } catch (error: any) {
+      console.error("[Hugging Face] Search Error:", error.message);
+      res.status(500).json({ error: "Falha ao buscar no repositório Hugging Face." });
     }
   });
 
@@ -52,7 +169,7 @@ async function startServer() {
     });
     app.use(vite.middlewares);
   } else {
-    const distPath = path.join(process.cwd(), "dist");
+    const distPath = path.join(__dirname, "../dist");
     app.use(express.static(distPath));
     app.get("*", (req, res) => {
       res.sendFile(path.join(distPath, "index.html"));
@@ -60,11 +177,19 @@ async function startServer() {
   }
 
   const server = app.listen(PORT, "0.0.0.0", () => {
-    console.log(`[Sovereign Core] Server running on http://localhost:${PORT}`);
+    console.log(`[Vaelindra Monolith] Server running on http://localhost:${PORT}`);
   });
 
   // WebSocket Server for VMC/OSC Bridge
-  const wss = new WebSocketServer({ server });
+  const wss = new WebSocketServer({ noServer: true });
+
+  server.on("upgrade", (request, socket, head) => {
+    if (request.url === "/ws") {
+      wss.handleUpgrade(request, socket, head, (ws) => {
+        wss.emit("connection", ws, request);
+      });
+    }
+  });
 
   wss.on("connection", (ws) => {
     console.log("[VMC Bridge] Client connected");

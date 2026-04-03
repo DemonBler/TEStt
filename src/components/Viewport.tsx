@@ -1,16 +1,23 @@
 import React, { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
-import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { VRMLoaderPlugin, VRMUtils } from "@pixiv/three-vrm";
 import { useSovereignStore } from "../store";
-import { motion } from "motion/react";
+import { motion } from "framer-motion";
 
 export const Viewport = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const vmcData = useSovereignStore((state) => state.vmcData);
+  const vmcDataRef = useRef(vmcData);
   const [loading, setLoading] = useState(true);
   const vrmRef = useRef<any>(null);
+
+  const [activeMood, setActiveMood] = useState("Neutro");
+
+  useEffect(() => {
+    vmcDataRef.current = vmcData;
+  }, [vmcData]);
 
   useEffect(() => {
     if (!canvasRef.current || !containerRef.current) return;
@@ -65,33 +72,71 @@ export const Viewport = () => {
     const loader = new GLTFLoader();
     loader.register((parser) => new VRMLoaderPlugin(parser));
 
-    // Placeholder VRM (Using a generic one if available, or just a box for now if URL fails)
-    // In a real setup, this would load from D:\Omni-Genesis\Vaelindra.vrm
-    loader.load(
-      "https://pixiv.github.io/three-vrm/packages/three-vrm/examples/models/VRM1_Constraint_Sample.vrm",
-      (gltf) => {
-        const vrm = gltf.userData.vrm;
-        scene.add(vrm.scene);
-        vrmRef.current = vrm;
-        setLoading(false);
-        console.log("[Sovereign Core] VRM 1.0 Materialized");
-      },
-      (progress) => console.log(`[VRM] Loading: ${Math.round((progress.loaded / progress.total) * 100)}%`),
-      (error) => {
-        console.error("[VRM] Load Failed:", error);
-        setLoading(false);
-      }
-    );
+    // Fallback Cube in case VRM fails
+    const fallbackGeo = new THREE.BoxGeometry(0.5, 0.5, 0.5);
+    const fallbackMat = new THREE.MeshStandardMaterial({ color: 0x00f3ff, wireframe: true });
+    const fallbackCube = new THREE.Mesh(fallbackGeo, fallbackMat);
+    fallbackCube.position.y = 1;
+    scene.add(fallbackCube);
 
+    const loadVRM = (url: string) => {
+      setLoading(true);
+      if (vrmRef.current) {
+        scene.remove(vrmRef.current.scene);
+        vrmRef.current.dispose();
+        vrmRef.current = null;
+      }
+      
+      loader.load(
+        url,
+        (gltf) => {
+          const vrm = gltf.userData.vrm;
+          scene.remove(fallbackCube);
+          
+          // Disable frustum culling for VRM to prevent it disappearing when moving
+          vrm.scene.traverse((obj: any) => {
+            obj.frustumCulled = false;
+          });
+
+          scene.add(vrm.scene);
+          vrmRef.current = vrm;
+          setLoading(false);
+          console.log("[Sovereign Core] VRM Materialized");
+        },
+        (progress) => console.log(`[VRM] Loading: ${Math.round((progress.loaded / progress.total) * 100)}%`),
+        (error) => {
+          console.error("[VRM] Load Failed:", error);
+          setLoading(false);
+          scene.add(fallbackCube);
+        }
+      );
+    };
+
+    // Initial Load
+    const initialUrl = localStorage.getItem('vaelindra_vrm_url') || "https://raw.githubusercontent.com/pixiv/three-vrm/dev/packages/three-vrm/examples/models/VRM1_Constraint_Twist_Sample.vrm";
+    loadVRM(initialUrl);
+
+    // Listen for VRM changes from Settings
+    const handleVrmChange = () => {
+      const newUrl = localStorage.getItem('vaelindra_vrm_url');
+      if (newUrl) {
+        loadVRM(newUrl);
+      }
+    };
+    window.addEventListener('vrm_changed', handleVrmChange);
+
+    let frameId: number;
     const animate = () => {
-      requestAnimationFrame(animate);
+      frameId = requestAnimationFrame(animate);
+
+      const currentVmcData = vmcDataRef.current;
 
       // [VMC Proxy Integration]
-      if (vrmRef.current && vmcData) {
+      if (vrmRef.current && currentVmcData) {
         // Apply Bone Rotations (Quaternions)
-        const bones = vmcData.bones;
+        const bones = currentVmcData.bones;
         for (const boneName in bones) {
-          const bone = vrmRef.current.humanoid.getRawBone(boneName);
+          const bone = vrmRef.current.humanoid.getRawBoneNode(boneName);
           if (bone) {
             const rot = bones[boneName];
             bone.quaternion.set(rot[0], rot[1], rot[2], rot[3]);
@@ -99,7 +144,7 @@ export const Viewport = () => {
         }
 
         // Apply Blendshapes (LipSync/Expressions)
-        const blendshapes = vmcData.blendshapes;
+        const blendshapes = currentVmcData.blendshapes;
         for (const bsName in blendshapes) {
           vrmRef.current.expressionManager.setValue(bsName, blendshapes[bsName]);
         }
@@ -107,8 +152,18 @@ export const Viewport = () => {
       }
 
       // Idle Rotation if no VMC
-      if (!vmcData && vrmRef.current) {
+      if (!currentVmcData && vrmRef.current) {
         vrmRef.current.scene.rotation.y = Math.sin(Date.now() * 0.001) * 0.1;
+        
+        // Apply manual mood if no VMC is driving it
+        const expressionManager = vrmRef.current.expressionManager;
+        if (expressionManager) {
+          expressionManager.setValue('neutral', activeMood === 'Neutro' ? 1.0 : 0.0);
+          expressionManager.setValue('happy', activeMood === 'Alegria' ? 1.0 : 0.0);
+          expressionManager.setValue('angry', activeMood === 'Raiva' ? 1.0 : 0.0);
+          expressionManager.setValue('sad', activeMood === 'Tristeza' ? 1.0 : 0.0);
+          expressionManager.update();
+        }
       }
 
       renderer.render(scene, camera);
@@ -125,6 +180,10 @@ export const Viewport = () => {
 
     return () => {
       window.removeEventListener("resize", handleResize);
+      window.removeEventListener('vrm_changed', handleVrmChange);
+      if (frameId) {
+        cancelAnimationFrame(frameId);
+      }
       renderer.dispose();
     };
   }, []);
@@ -137,7 +196,7 @@ export const Viewport = () => {
       {loading && (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#050508]/80 backdrop-blur-xl z-20">
           <div className="h-16 w-16 border-2 border-neon-blue border-t-transparent rounded-full animate-spin mb-4" />
-          <p className="text-xs font-mono text-neon-blue uppercase tracking-[0.3em] animate-pulse">Materializing Vaelindra...</p>
+          <p className="text-xs font-mono text-neon-blue uppercase tracking-[0.3em] animate-pulse">Materializando Vaelindra...</p>
         </div>
       )}
 
@@ -147,13 +206,16 @@ export const Viewport = () => {
           <div className="space-y-1">
             <div className="flex items-center gap-2">
               <div className="h-1.5 w-1.5 bg-neon-blue rounded-full animate-ping" />
-              <span className="text-[10px] font-mono text-neon-blue uppercase tracking-widest">Holographic Viewport Active</span>
+              <span className="text-[10px] font-mono text-neon-blue uppercase tracking-widest">Visualizador Holográfico Ativo</span>
             </div>
-            <p className="text-[8px] font-mono text-white/20 uppercase">Render: WebGL 2.0 / RTX 4060 Optimized</p>
+            <p className="text-[8px] font-mono text-white/20 uppercase">Renderização: WebGL 2.0 / RTX 4060 Otimizado</p>
+            <p className="text-[8px] font-mono text-neon-pink/70 uppercase pt-2">Rig: Pronto para SMPL-X</p>
+            <p className="text-[8px] font-mono text-neon-pink/70 uppercase">Movimento: HybrIK / MotionBERT (Em Espera)</p>
+            <p className="text-[8px] font-mono text-neon-pink/70 uppercase">Rosto: EMO / LiveSpeechPortraits (Em Espera)</p>
           </div>
           <div className="text-right">
-            <p className="text-[10px] font-mono text-white/40 uppercase">Cam: Perspective 35°</p>
-            <p className="text-[10px] font-mono text-white/40 uppercase">SSR: Enabled (Simulated)</p>
+            <p className="text-[10px] font-mono text-white/40 uppercase">Câm: Perspectiva 35°</p>
+            <p className="text-[10px] font-mono text-white/40 uppercase">Shader SSS: Ativo (Simulado)</p>
           </div>
         </div>
 
@@ -161,13 +223,13 @@ export const Viewport = () => {
         <div className="flex justify-between items-end">
           <div className="glass p-3 rounded-lg border border-white/5 flex gap-4">
             <div className="space-y-1">
-              <p className="text-[8px] font-mono text-white/40 uppercase">Bone Sinc</p>
+              <p className="text-[8px] font-mono text-white/40 uppercase">Sinc. Óssea</p>
               <div className="h-1 w-12 bg-white/10 rounded-full overflow-hidden">
                 <motion.div className="h-full bg-neon-blue" animate={{ width: vmcData ? "100%" : "0%" }} />
               </div>
             </div>
             <div className="space-y-1">
-              <p className="text-[8px] font-mono text-white/40 uppercase">Blend Sinc</p>
+              <p className="text-[8px] font-mono text-white/40 uppercase">Sinc. Blend</p>
               <div className="h-1 w-12 bg-white/10 rounded-full overflow-hidden">
                 <motion.div className="h-full bg-neon-pink" animate={{ width: vmcData ? "100%" : "0%" }} />
               </div>
@@ -182,23 +244,25 @@ export const Viewport = () => {
                 transition={{ duration: 0.5, repeat: Infinity }}
               />
             </div>
-            <span className="text-[8px] font-mono text-white/40 uppercase vertical-text">Signal Strength</span>
+            <span className="text-[8px] font-mono text-white/40 uppercase vertical-text">Força do Sinal</span>
           </div>
         </div>
       </div>
 
       {/* Interaction Orbs (Cyber-Fofo) */}
       <div className="absolute right-8 top-1/2 -translate-y-1/2 flex flex-col gap-4">
-        {["Neutral", "Joy", "Angry", "Sorrow"].map((mood) => (
+        {["Neutro", "Alegria", "Raiva", "Tristeza"].map((mood) => (
           <motion.button
             key={mood}
+            onClick={() => setActiveMood(mood)}
             whileHover={{ scale: 1.2, x: -5 }}
             whileTap={{ scale: 0.9 }}
             className={`h-10 w-10 rounded-full glass border flex items-center justify-center transition-colors ${
-              mood === "Joy" ? "border-neon-pink/50 text-neon-pink" : "border-white/10 text-white/40"
+              activeMood === mood ? "border-neon-pink/50 text-neon-pink" : "border-white/10 text-white/40"
             }`}
+            title={mood}
           >
-            <div className={`h-2 w-2 rounded-full ${mood === "Joy" ? "bg-neon-pink" : "bg-white/20"}`} />
+            <div className={`h-2 w-2 rounded-full ${activeMood === mood ? "bg-neon-pink" : "bg-white/20"}`} />
           </motion.button>
         ))}
       </div>

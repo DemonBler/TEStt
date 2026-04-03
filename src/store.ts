@@ -19,8 +19,8 @@ export const useSovereignStore = create<SovereignState>((set) => ({
   activeTab: "home",
   isLive: false,
   chatMessages: [
-    { id: 1, user: "Drevlan", text: "Iniciando Protocolo Canary...", type: "system", color: "#00f3ff" },
-    { id: 2, user: "Vaelindra", text: "Sistemas nominais. Aguardando injeção de tensores.", type: "ai", color: "#ff007f" },
+    { id: 1, user: "System", text: "Núcleo Monólito Vaelindra v5.0.2 [Canary Extremo] - Kernel Carregado.", type: "system", color: "#00f3ff" },
+    { id: 2, user: "Vaelindra", text: "Sistemas nominais, Drevlan. O kernel Fedora está estável, por enquanto. O que vamos quebrar hoje?", type: "ai", color: "#ff007f" },
   ],
   setVmcData: (data) => set({ vmcData: data }),
   setTelemetry: (data) => set({ telemetry: data }),

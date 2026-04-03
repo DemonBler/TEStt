@@ -19,7 +19,7 @@ export const SystemMonitor: React.FC = () => {
 
     const fetchStats = async () => {
       try {
-        const res = await fetch('http://localhost:8000/stats', { signal: AbortSignal.timeout(2000) });
+        const res = await fetch('http://localhost:8000/stats');
         if (!res.ok) throw new Error('Falha na resposta do servidor local');
         const data = await res.json();
         setStats(data);

@@ -1,6 +1,6 @@
 {
-  "name": "Vaelindra Sovereign Core v5.0",
-  "description": "Núcleo de IA VTuber Soberano (Vaelindra). Integração Nativa: NVIDIA ACE, VMC Protocol, Ollama e Telemetria Extreme Canary.",
+  "name": "Vaelindra Monolith",
+  "description": "Extreme Canary System Engineering: NVIDIA ACE + Gemini 2.5 Flash integration for high-fidelity VTubing and system automation.",
   "requestFramePermissions": [
     "camera",
     "microphone"

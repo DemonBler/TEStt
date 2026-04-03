@@ -12,12 +12,12 @@
 }
 
 :root {
-  --glass-bg: rgba(10, 10, 15, 0.7);
-  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-bg: rgba(15, 15, 25, 0.8);
+  --glass-border: rgba(255, 255, 255, 0.15);
 }
 
 body {
-  background-color: #050508;
+  background-color: #0a0a0f;
   color: #ffffff;
   overflow: hidden;
   font-family: var(--font-sans);

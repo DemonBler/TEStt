@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { motion, AnimatePresence } from "motion/react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Send, User, Bot, Terminal, Shield } from "lucide-react";
 import { useSovereignStore } from "../store";
 
@@ -15,7 +15,7 @@ export const Chat = () => {
     }
   }, [chatMessages]);
 
-  const handleSend = (e: React.FormEvent) => {
+  const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim()) return;
 
@@ -27,16 +27,33 @@ export const Chat = () => {
       color: "#00f3ff",
     });
 
-    // Simulate AI Response (Cyber-Fofo)
-    setTimeout(() => {
+    // Neural Processing via Ollama Local
+    try {
+      const selectedModel = localStorage.getItem('vaelindra_model') || 'qwen2.5:0.5b';
+      
+      const response = await fetch("/api/neural", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: input, model: selectedModel }),
+      });
+      const data = await response.json();
+      
       addChatMessage({
         id: Date.now() + 1,
         user: "Vaelindra",
-        text: "Comando recebido. Processando via NVIDIA ACE...",
+        text: data.response,
         type: "ai",
         color: "#ff007f",
       });
-    }, 1000);
+    } catch (error) {
+      addChatMessage({
+        id: Date.now() + 1,
+        user: "System",
+        text: "Falha na conexão neural. Verifique o kernel.",
+        type: "system",
+        color: "#ff0000",
+      });
+    }
 
     setInput("");
   };
@@ -50,13 +67,13 @@ export const Chat = () => {
             <Bot className="w-5 h-5 text-neon-pink" />
           </div>
           <div>
-            <h2 className="text-lg font-mono text-neon-pink uppercase tracking-widest neon-text">Neural Chat</h2>
-            <p className="text-[10px] text-white/40 font-mono uppercase tracking-tighter">Ollama / ACE Integration</p>
+            <h2 className="text-lg font-mono text-neon-pink uppercase tracking-widest neon-text">Chat Neural</h2>
+            <p className="text-[10px] text-white/40 font-mono uppercase tracking-tighter">Integração Ollama Local</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
           <div className="h-2 w-2 rounded-full bg-green-400 animate-pulse" />
-          <span className="text-[10px] font-mono text-green-400 uppercase tracking-widest">AI Online</span>
+          <span className="text-[10px] font-mono text-green-400 uppercase tracking-widest">IA Online</span>
         </div>
       </div>
 
@@ -142,10 +159,10 @@ export const Chat = () => {
             <div className="h-1 w-8 bg-neon-blue/20 rounded-full overflow-hidden">
               <motion.div className="h-full bg-neon-blue" animate={{ width: ["10%", "90%", "30%"] }} transition={{ duration: 3, repeat: Infinity }} />
             </div>
-            <span className="text-[8px] font-mono text-white/20 uppercase tracking-widest">Entropy</span>
+            <span className="text-[8px] font-mono text-white/20 uppercase tracking-widest">Entropia</span>
           </div>
         </div>
-        <span className="text-[8px] font-mono text-white/20 uppercase tracking-widest">Vaelindra Sovereign Core v5.0</span>
+        <span className="text-[8px] font-mono text-white/20 uppercase tracking-widest">Núcleo Soberano Vaelindra v5.0</span>
       </div>
     </div>
   );

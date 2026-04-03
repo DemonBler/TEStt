@@ -143,6 +143,9 @@ export class NeuralKinematicsEngine {
     const deltaTime = this.clock.getDelta();
     this.time += deltaTime;
 
+    const useMicroExpressions = localStorage.getItem('vaelindra_micro_expressions') !== 'false';
+    const useSkinFlush = localStorage.getItem('vaelindra_skin_flush') !== 'false';
+
     if (this.predictiveBuffer.gestureTimer > 0) {
       this.predictiveBuffer.gestureTimer -= deltaTime;
       if (this.predictiveBuffer.gestureTimer <= 0) {
@@ -156,11 +159,36 @@ export class NeuralKinematicsEngine {
     this.processVDIAndGestures(deltaTime); // Gestos de Sistema
     this.processNeuralLipSync(deltaTime); // Análise de Formantes
 
+    if (useMicroExpressions) {
+      this.processMicroExpressions(deltaTime);
+    }
+    
+    if (useSkinFlush) {
+      this.processSkinFlush(deltaTime);
+    }
+
     // O VMC Proxy aplica todas as rotações e blendshapes calculados de forma suave
     this.vmcProxy.update(deltaTime, this.vrm);
     
     // Atualiza o VRM (física de cabelo/roupa, etc)
     this.vrm.update(deltaTime);
+  }
+
+  private processMicroExpressions(deltaTime: number) {
+    // Adiciona pequenos espasmos e movimentos oculares
+    if (Math.random() < 0.05) {
+      const blinkName = Math.random() > 0.5 ? 'blinkLeft' : 'blinkRight';
+      this.vmcProxy.setTargetBlendshape(blinkName, Math.random() * 0.2);
+      setTimeout(() => {
+        this.vmcProxy.setTargetBlendshape(blinkName, 0);
+      }, 50 + Math.random() * 100);
+    }
+  }
+
+  private processSkinFlush(deltaTime: number) {
+    // Simulate skin flush by slightly modifying material color or bloom
+    // This is a placeholder for actual shader modification
+    // In a real scenario, we would traverse materials and adjust the emissive or color property
   }
 
   /**

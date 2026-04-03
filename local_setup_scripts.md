@@ -98,9 +98,26 @@ asyncio.get_event_loop().run_until_complete(start_server)
 asyncio.get_event_loop().run_forever()
 ```
 
-## 4. Como Usar
-1. Instale o Docker Desktop e NVIDIA Container Toolkit.
-2. Instale o Python 3.10+.
-3. Execute `pip install -r requirements.txt`.
-4. Execute `.\god-mode-boot.ps1`.
-5. O frontend React se conectará ao backend local na porta 8000.
+## 5. Compilando o Aplicativo Desktop (Windows/Linux)
+
+Para transformar este projeto em um aplicativo executável real (não dependente do navegador), utilizamos o Electron.
+
+1. Instale as dependências Node.js:
+   ```bash
+   npm install
+   ```
+
+2. Para rodar em modo de desenvolvimento (Aplicativo Desktop):
+   ```bash
+   npm run dev:desktop
+   ```
+
+3. Para compilar o executável final:
+   ```bash
+   npm run electron:build
+   ```
+   Isso irá gerar os instaladores na pasta `release/`.
+   - No Windows, gerará um instalador `.exe` (NSIS).
+   - No Linux, gerará um `AppImage`.
+
+O aplicativo compilado é 100% independente, não requer navegador e se comunica diretamente com o Ollama local e outros serviços.
