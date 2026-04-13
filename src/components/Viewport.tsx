@@ -2,8 +2,10 @@ import React, { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { VRMLoaderPlugin, VRMUtils } from "@pixiv/three-vrm";
+import { VRMAnimationLoaderPlugin, createVRMAnimationClip } from "@pixiv/three-vrm-animation";
 import { useSovereignStore } from "../store";
 import { motion } from "framer-motion";
+import { NeuralKinematicsEngine } from "../lib/NeuralKinematics";
 
 export const Viewport = () => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -12,6 +14,8 @@ export const Viewport = () => {
   const vmcDataRef = useRef(vmcData);
   const [loading, setLoading] = useState(true);
   const vrmRef = useRef<any>(null);
+  const engineRef = useRef<NeuralKinematicsEngine | null>(null);
+  const mixerRef = useRef<THREE.AnimationMixer | null>(null);
 
   const [activeMood, setActiveMood] = useState("Neutro");
 
@@ -71,6 +75,7 @@ export const Viewport = () => {
     // [VRM Loader] - Normalização de Eixos Serevano
     const loader = new GLTFLoader();
     loader.register((parser) => new VRMLoaderPlugin(parser));
+    loader.register((parser) => new VRMAnimationLoaderPlugin(parser));
 
     // Fallback Cube in case VRM fails
     const fallbackGeo = new THREE.BoxGeometry(0.5, 0.5, 0.5);
@@ -98,8 +103,26 @@ export const Viewport = () => {
             obj.frustumCulled = false;
           });
 
+          // Adjust VRM Origin (Face the camera and ground it)
+          vrm.scene.rotation.y = Math.PI;
+          vrm.scene.position.set(0, 0, 0);
+
           scene.add(vrm.scene);
           vrmRef.current = vrm;
+          
+          // Initialize Neural Kinematics Engine
+          engineRef.current = new NeuralKinematicsEngine(vrm);
+          
+          // Load VRMA animation
+          loader.loadAsync('/animations/idle_loop.vrma').then((gltfVrma) => {
+            const vrmAnimation = gltfVrma.userData.vrmAnimations[0];
+            const clip = createVRMAnimationClip(vrmAnimation, vrm);
+            const mixer = new THREE.AnimationMixer(vrm.scene);
+            mixer.clipAction(clip).play();
+            mixerRef.current = mixer;
+            console.log("[Sovereign Core] VRMA Animation Loaded");
+          }).catch(console.error);
+
           setLoading(false);
           console.log("[Sovereign Core] VRM Materialized");
         },
@@ -125,11 +148,36 @@ export const Viewport = () => {
     };
     window.addEventListener('vrm_changed', handleVrmChange);
 
+    // Listen for Neural Actions from Chat
+    const handleNeuralAction = (e: any) => {
+      if (engineRef.current && e.detail && e.detail.action) {
+        engineRef.current.triggerAction(e.detail.action);
+      }
+    };
+    window.addEventListener('neural_action', handleNeuralAction);
+
+    // Mouse Tracking for Spatial Awareness
+    const handleMouseMove = (e: MouseEvent) => {
+      if (engineRef.current && containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect();
+        const x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+        const y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+        engineRef.current.setMousePosition(x, y);
+      }
+    };
+    window.addEventListener('mousemove', handleMouseMove);
+
     let frameId: number;
+    const clock = new THREE.Clock();
     const animate = () => {
       frameId = requestAnimationFrame(animate);
+      const deltaTime = clock.getDelta();
 
       const currentVmcData = vmcDataRef.current;
+
+      if (mixerRef.current) {
+        mixerRef.current.update(deltaTime);
+      }
 
       // [VMC Proxy Integration]
       if (vrmRef.current && currentVmcData) {
@@ -149,11 +197,12 @@ export const Viewport = () => {
           vrmRef.current.expressionManager.setValue(bsName, blendshapes[bsName]);
         }
         vrmRef.current.expressionManager.update();
-      }
-
-      // Idle Rotation if no VMC
-      if (!currentVmcData && vrmRef.current) {
-        vrmRef.current.scene.rotation.y = Math.sin(Date.now() * 0.001) * 0.1;
+      } else if (engineRef.current) {
+        // Use Neural Kinematics Engine if no VMC data
+        engineRef.current.update();
+      } else if (!currentVmcData && vrmRef.current) {
+        // Fallback Idle Rotation
+        vrmRef.current.scene.rotation.y = Math.PI + Math.sin(Date.now() * 0.001) * 0.1;
         
         // Apply manual mood if no VMC is driving it
         const expressionManager = vrmRef.current.expressionManager;
@@ -181,6 +230,8 @@ export const Viewport = () => {
     return () => {
       window.removeEventListener("resize", handleResize);
       window.removeEventListener('vrm_changed', handleVrmChange);
+      window.removeEventListener('neural_action', handleNeuralAction);
+      window.removeEventListener('mousemove', handleMouseMove);
       if (frameId) {
         cancelAnimationFrame(frameId);
       }

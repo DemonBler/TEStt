@@ -18,6 +18,11 @@ class VMCProxy {
     }
   }
 
+  public clearTargetRotation(bone: VRMHumanBoneName) {
+    this.targetRotations.delete(bone);
+    this.currentRotations.delete(bone);
+  }
+
   public setTargetBlendshape(name: string, value: number) {
     this.targetBlendshapes.set(name, value);
     if (!this.blendshapes.has(name)) {
@@ -81,6 +86,7 @@ export class NeuralKinematicsEngine {
   // IK Targets
   private lookAtTarget: THREE.Vector3 = new THREE.Vector3(0, 1.4, 2);
   private mousePos: THREE.Vector2 = new THREE.Vector2(0, 0);
+  private targetRotationY: number = Math.PI;
 
   // Audio Processing (Formant Analysis)
   private audioAnalyser: AnalyserNode | null = null;
@@ -91,25 +97,7 @@ export class NeuralKinematicsEngine {
     this.clock = new THREE.Clock();
     this.vmcProxy = new VMCProxy();
     
-    // Auto-Mapping Inicial: Forçar captura dos ossos críticos
-    this.initializeBoneMapping();
-    
     console.log("[NeuralKinematicsEngine] Inicializado com sucesso. Protocolo de Sequestro VMC Ativado.");
-  }
-
-  private initializeBoneMapping() {
-    // Garante que os ossos críticos existam, aplicando Fuzzy Matching se necessário (simulado aqui pela robustez do three-vrm)
-    const criticalBones: VRMHumanBoneName[] = ['hips', 'spine', 'head', 'leftUpperArm', 'rightUpperArm', 'leftFoot', 'rightFoot'];
-    criticalBones.forEach(bone => {
-      const node = this.vrm.humanoid?.getNormalizedBoneNode(bone);
-      if (!node) {
-        console.warn(`[NeuralKinematics] Osso crítico não encontrado: ${bone}. Tentando Fuzzy Matching interno...`);
-        // Aqui entraria a lógica de Fuzzy Matching real iterando sobre a cena se o three-vrm falhasse
-      } else {
-        // Inicializa o proxy com a rotação neutra
-        this.vmcProxy.setTargetRotation(bone, node.quaternion.clone());
-      }
-    });
   }
 
   public setMousePosition(x: number, y: number) {
@@ -128,6 +116,99 @@ export class NeuralKinematicsEngine {
     this.predictiveBuffer.systemGesture = gesture;
     this.predictiveBuffer.gestureTimer = 2.0; // Duração do gesto em segundos
     console.log(`[NeuralKinematics] VDI Gateway: Disparando gesto de sistema -> ${gesture}`);
+  }
+
+  public triggerAction(action: string) {
+    console.log(`[NeuralKinematics] Executing Action: ${action}`);
+    switch (action) {
+      case 'blink':
+        this.vmcProxy.setTargetBlendshape('blink', 1);
+        setTimeout(() => this.vmcProxy.setTargetBlendshape('blink', 0), 150);
+        break;
+      case 'look_left':
+        this.lookAtTarget.x = -5;
+        setTimeout(() => this.lookAtTarget.x = 0, 1000);
+        break;
+      case 'look_right':
+        this.lookAtTarget.x = 5;
+        setTimeout(() => this.lookAtTarget.x = 0, 1000);
+        break;
+      case 'nod':
+        this.vmcProxy.setTargetRotation('head', new THREE.Quaternion().setFromEuler(new THREE.Euler(0.3, 0, 0)));
+        setTimeout(() => this.vmcProxy.setTargetRotation('head', new THREE.Quaternion().setFromEuler(new THREE.Euler(-0.1, 0, 0))), 300);
+        setTimeout(() => this.vmcProxy.clearTargetRotation('head'), 600);
+        break;
+      case 'shake_head':
+        this.vmcProxy.setTargetRotation('head', new THREE.Quaternion().setFromEuler(new THREE.Euler(0, 0.3, 0)));
+        setTimeout(() => this.vmcProxy.setTargetRotation('head', new THREE.Quaternion().setFromEuler(new THREE.Euler(0, -0.3, 0))), 300);
+        setTimeout(() => this.vmcProxy.clearTargetRotation('head'), 600);
+        break;
+      case 'smile':
+        this.setMood('excited');
+        setTimeout(() => this.setMood('neutral'), 3000);
+        break;
+      case 'angry':
+        this.setMood('angry');
+        setTimeout(() => this.setMood('neutral'), 3000);
+        break;
+      case 'sad':
+        this.setMood('sad');
+        setTimeout(() => this.setMood('neutral'), 3000);
+        break;
+      case 'surprised':
+        this.vmcProxy.setTargetBlendshape('surprised', 1);
+        setTimeout(() => this.vmcProxy.setTargetBlendshape('surprised', 0), 2000);
+        break;
+      case 'turn_back':
+        this.targetRotationY = 0;
+        break;
+      case 'turn_forward':
+        this.targetRotationY = Math.PI;
+        break;
+      case 'say_hello':
+        this.vmcProxy.setTargetRotation('rightUpperArm', new THREE.Quaternion().setFromEuler(new THREE.Euler(0, 0, -1.5)));
+        this.vmcProxy.setTargetRotation('rightLowerArm', new THREE.Quaternion().setFromEuler(new THREE.Euler(0, 0, -1.0)));
+        this.vmcProxy.setTargetBlendshape('aa', 0.8);
+        this.setMood('excited');
+        setTimeout(() => this.vmcProxy.setTargetRotation('rightLowerArm', new THREE.Quaternion().setFromEuler(new THREE.Euler(0, 0, -0.2))), 200);
+        setTimeout(() => this.vmcProxy.setTargetRotation('rightLowerArm', new THREE.Quaternion().setFromEuler(new THREE.Euler(0, 0, -1.0))), 400);
+        setTimeout(() => this.vmcProxy.setTargetRotation('rightLowerArm', new THREE.Quaternion().setFromEuler(new THREE.Euler(0, 0, -0.2))), 600);
+        setTimeout(() => {
+          this.vmcProxy.clearTargetRotation('rightUpperArm');
+          this.vmcProxy.clearTargetRotation('rightLowerArm');
+          this.vmcProxy.setTargetBlendshape('aa', 0);
+          this.setMood('neutral');
+        }, 1000);
+        break;
+      case 'wave':
+        this.vmcProxy.setTargetRotation('rightUpperArm', new THREE.Quaternion().setFromEuler(new THREE.Euler(0, 0, -1.5)));
+        this.vmcProxy.setTargetRotation('rightLowerArm', new THREE.Quaternion().setFromEuler(new THREE.Euler(0, 0, -1.0)));
+        setTimeout(() => this.vmcProxy.setTargetRotation('rightLowerArm', new THREE.Quaternion().setFromEuler(new THREE.Euler(0, 0, -0.2))), 200);
+        setTimeout(() => this.vmcProxy.setTargetRotation('rightLowerArm', new THREE.Quaternion().setFromEuler(new THREE.Euler(0, 0, -1.0))), 400);
+        setTimeout(() => this.vmcProxy.setTargetRotation('rightLowerArm', new THREE.Quaternion().setFromEuler(new THREE.Euler(0, 0, -0.2))), 600);
+        setTimeout(() => {
+          this.vmcProxy.clearTargetRotation('rightUpperArm');
+          this.vmcProxy.clearTargetRotation('rightLowerArm');
+        }, 1000);
+        break;
+      case 'open_mouth':
+        this.vmcProxy.setTargetBlendshape('aa', 1);
+        break;
+      case 'close_mouth':
+        this.vmcProxy.setTargetBlendshape('aa', 0);
+        this.vmcProxy.setTargetBlendshape('ih', 0);
+        this.vmcProxy.setTargetBlendshape('ou', 0);
+        break;
+      case 'show_teeth':
+        this.vmcProxy.setTargetBlendshape('ih', 1);
+        break;
+      case 'move_jaw':
+        this.vmcProxy.setTargetBlendshape('aa', 0.5);
+        setTimeout(() => this.vmcProxy.setTargetBlendshape('aa', 0), 200);
+        setTimeout(() => this.vmcProxy.setTargetBlendshape('aa', 0.5), 400);
+        setTimeout(() => this.vmcProxy.setTargetBlendshape('aa', 0), 600);
+        break;
+    }
   }
 
   public attachAudioAnalyser(analyser: AnalyserNode, dataArray: Uint8Array) {
@@ -170,6 +251,13 @@ export class NeuralKinematicsEngine {
     // O VMC Proxy aplica todas as rotações e blendshapes calculados de forma suave
     this.vmcProxy.update(deltaTime, this.vrm);
     
+    // Atualiza a rotação geral do modelo (para turn_back e turn_forward)
+    if (this.vrm.scene) {
+      // Interpolação suave para a rotação alvo
+      const diff = this.targetRotationY - this.vrm.scene.rotation.y;
+      this.vrm.scene.rotation.y += diff * 5.0 * deltaTime;
+    }
+
     // Atualiza o VRM (física de cabelo/roupa, etc)
     this.vrm.update(deltaTime);
   }
@@ -223,10 +311,6 @@ export class NeuralKinematicsEngine {
 
     const chestRotX = Math.sin(this.time * Math.PI * breathSpeed) * breathAmp;
     
-    // Aplica ao Proxy
-    const spineQuat = new THREE.Quaternion().setFromEuler(new THREE.Euler(chestRotX + noiseX * 0.01, 0, noiseZ * 0.01));
-    this.vmcProxy.setTargetRotation('spine', spineQuat);
-
     // Blinking (Micro-Expressões)
     const blinkFrequency = 0.2;
     const blinkDuration = 0.1;
@@ -242,115 +326,25 @@ export class NeuralKinematicsEngine {
    * 3. Cinemática Inversa (IK) e Aterramento via Ray-Casting
    */
   private processInverseKinematics(deltaTime: number) {
-    const hips = this.vrm.humanoid?.getNormalizedBoneNode('hips');
-    const leftFoot = this.vrm.humanoid?.getNormalizedBoneNode('leftFoot');
-    const rightFoot = this.vrm.humanoid?.getNormalizedBoneNode('rightFoot');
-    
-    if (!hips) return;
-
-    let swaySpeed = 2;
-    let swayAmp = 0.01;
-    
-    // Ray-Casting Simulado: Garante que os pés não atravessem o chão (Y=0)
-    if (leftFoot && rightFoot) {
-        const leftFootPos = new THREE.Vector3();
-        leftFoot.getWorldPosition(leftFootPos);
-        const rightFootPos = new THREE.Vector3();
-        rightFoot.getWorldPosition(rightFootPos);
-        
-        const lowestFootY = Math.min(leftFootPos.y, rightFootPos.y);
-        
-        // Se o pé mais baixo estiver abaixo do chão, empurra o quadril para cima
-        if (lowestFootY < 0) {
-            hips.position.y += (0 - lowestFootY) * 0.5; // Correção rápida
-        } else if (lowestFootY > 0.05 && !this.predictiveBuffer.isWalking) {
-            // Se estiver flutuando, puxa para baixo suavemente
-            hips.position.y -= 0.01;
-        }
-    }
-
-    if (this.predictiveBuffer.isWalking) {
-        swaySpeed = 5;
-        swayAmp = 0.05;
-        hips.position.x = Math.sin(this.time * 2.5) * 0.05;
-        hips.position.z = Math.sin(this.time * 5) * 0.02;
-    } else {
-        hips.position.x += (0 - hips.position.x) * 0.1;
-        hips.position.z += (0 - hips.position.z) * 0.1;
-    }
-
-    hips.position.y += Math.sin(this.time * swaySpeed) * swayAmp * deltaTime;
-    
-    // Ajuste de Postura baseado no Humor (Ollama Context)
-    let hipRotX = 0;
-    if (this.predictiveBuffer.mood === 'sad') {
-        hipRotX = 0.1; // Curvado para frente
-    } else if (this.predictiveBuffer.mood === 'excited' || this.predictiveBuffer.mood === 'angry') {
-        hipRotX = -0.05; // Postura imponente/reta
-    }
-    
-    const hipsQuat = new THREE.Quaternion().setFromEuler(new THREE.Euler(hipRotX, Math.sin(this.time * 0.5) * 0.02, 0));
-    this.vmcProxy.setTargetRotation('hips', hipsQuat);
+    // Logic removed to prevent conflict with VRMA idle loop
   }
 
   /**
    * 4. VDI Gateway: Gestos de Sistema e Movimento de Braços
    */
   private processVDIAndGestures(deltaTime: number) {
-    let targetArmZ = 1.2;
-    let targetArmX = 0.1;
-    let armSwaySpeed = 1.5;
-    let armSwayAmp = 0.05;
-
     // Gestos de Sistema (VDI)
     if (this.predictiveBuffer.systemGesture === 'pointing') {
         // Aponta para a tela
         const rightArmQuat = new THREE.Quaternion().setFromEuler(new THREE.Euler(-1.5, 0, 0.5));
         this.vmcProxy.setTargetRotation('rightUpperArm', rightArmQuat);
-        return; // Pula a lógica padrão para o braço direito
     } else if (this.predictiveBuffer.systemGesture === 'typing') {
         // Posição de digitação
         const typingQuatL = new THREE.Quaternion().setFromEuler(new THREE.Euler(-0.5, 0, 0.2));
         const typingQuatR = new THREE.Quaternion().setFromEuler(new THREE.Euler(-0.5, 0, -0.2));
         this.vmcProxy.setTargetRotation('leftUpperArm', typingQuatL);
         this.vmcProxy.setTargetRotation('rightUpperArm', typingQuatR);
-        return;
     }
-
-    // Lógica padrão de braços
-    if (this.predictiveBuffer.isWalking) {
-        targetArmX = 0.0;
-        armSwaySpeed = 5.0;
-        armSwayAmp = 0.2;
-    } else {
-        if (this.predictiveBuffer.mood === 'excited') {
-            targetArmZ = 0.8;
-            armSwaySpeed = 3.0;
-        } else if (this.predictiveBuffer.mood === 'sad') {
-            targetArmZ = 1.4;
-            armSwaySpeed = 0.5;
-        } else if (this.predictiveBuffer.mood === 'angry') {
-            targetArmZ = 1.0;
-            targetArmX = -0.2;
-        }
-    }
-
-    // Adiciona intensidade da fala aos braços (Gesticulação proativa)
-    const speakGesticulation = this.predictiveBuffer.speakingIntensity * 0.5;
-
-    const leftArmEuler = new THREE.Euler(
-        targetArmX + Math.sin(this.time * 0.8) * 0.02 - speakGesticulation,
-        0,
-        targetArmZ + Math.sin(this.time * armSwaySpeed) * armSwayAmp
-    );
-    const rightArmEuler = new THREE.Euler(
-        targetArmX + Math.sin(this.time * 0.8 + Math.PI) * 0.02 - speakGesticulation,
-        0,
-        -targetArmZ - Math.sin(this.time * armSwaySpeed + Math.PI) * armSwayAmp
-    );
-
-    this.vmcProxy.setTargetRotation('leftUpperArm', new THREE.Quaternion().setFromEuler(leftArmEuler));
-    this.vmcProxy.setTargetRotation('rightUpperArm', new THREE.Quaternion().setFromEuler(rightArmEuler));
   }
 
   /**

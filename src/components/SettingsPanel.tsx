@@ -68,6 +68,50 @@ const SettingSlider = ({ label, value, min, max, unit, onChange }: any) => (
   </div>
 );
 
+const CircularRing = ({ value, max, label, color, icon: Icon }: any) => {
+  const radius = 45;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference - (value / max) * circumference;
+
+  return (
+    <div className="flex flex-col items-center gap-4 group">
+      <div className="relative h-32 w-32 flex items-center justify-center">
+        <svg className="h-full w-full -rotate-90">
+          <circle
+            cx="64"
+            cy="64"
+            r={radius}
+            fill="transparent"
+            stroke="rgba(255, 255, 255, 0.05)"
+            strokeWidth="8"
+          />
+          <motion.circle
+            cx="64"
+            cy="64"
+            r={radius}
+            fill="transparent"
+            stroke={color}
+            strokeWidth="8"
+            strokeDasharray={circumference}
+            initial={{ strokeDashoffset: circumference }}
+            animate={{ strokeDashoffset: offset }}
+            transition={{ duration: 1, ease: "easeOut" }}
+            strokeLinecap="round"
+          />
+        </svg>
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
+          <Icon className="w-5 h-5 mb-1 opacity-40 group-hover:opacity-100 transition-opacity" style={{ color }} />
+          <span className="text-xs font-mono font-bold" style={{ color }}>{Math.round((value / max) * 100)}%</span>
+        </div>
+      </div>
+      <div className="text-center">
+        <p className="text-[10px] font-mono text-white/40 uppercase tracking-widest">{label}</p>
+        <p className="text-[8px] font-mono text-white/20 uppercase">{Math.round(value / (1024 * 1024 * 1024))}GB / {Math.round(max / (1024 * 1024 * 1024))}GB</p>
+      </div>
+    </div>
+  );
+};
+
 export function SettingsPanel() {
   const [models, setModels] = useState<any[]>([]);
   const [activeModel, setActiveModel] = useState(localStorage.getItem('vaelindra_model') || "qwen2.5:0.5b");
@@ -98,11 +142,26 @@ export function SettingsPanel() {
     localStorage.setItem('vaelindra_gpu_overdrive', gpuOverdrive.toString());
   }, [vramLimit, latencyTarget, skinFlush, microExpressions, memoryPinning, verboseLogs, networkIsolation, gpuOverdrive]);
 
-  const [vtubePort, setVtubePort] = useState(localStorage.getItem('vaelindra_vtube_port') || '8001');
-  const [vtubeStatus, setVtubeStatus] = useState<'disconnected' | 'connecting' | 'connected'>('disconnected');
-  
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [vrmPath, setVrmPath] = useState(localStorage.getItem('vaelindra_vrm_path') || "local://models/avatars/vaelindra_v5.vrm");
+
+  const [sysInfo, setSysInfo] = useState<any>(null);
+
+  useEffect(() => {
+    const fetchTelemetry = async () => {
+      try {
+        const response = await fetch("/api/telemetry");
+        const data = await response.json();
+        setSysInfo(data);
+      } catch (error) {
+        console.error("[Telemetry] Fetch Error:", error);
+      }
+    };
+
+    const interval = setInterval(fetchTelemetry, 2000);
+    fetchTelemetry();
+    return () => clearInterval(interval);
+  }, []);
 
   const fetchModels = async () => {
     setOllamaStatus('checking');
@@ -157,26 +216,6 @@ export function SettingsPanel() {
       console.error("Falha ao buscar no Hugging Face");
     } finally {
       setIsSearchingHf(false);
-    }
-  };
-
-  const testVTubeConnection = () => {
-    setVtubeStatus('connecting');
-    localStorage.setItem('vaelindra_vtube_port', vtubePort);
-    
-    try {
-      const ws = new WebSocket(`ws://localhost:${vtubePort}`);
-      
-      ws.onopen = () => {
-        setVtubeStatus('connected');
-        ws.close();
-      };
-      
-      ws.onerror = () => {
-        setVtubeStatus('disconnected');
-      };
-    } catch (e) {
-      setVtubeStatus('disconnected');
     }
   };
 
@@ -366,40 +405,38 @@ export function SettingsPanel() {
       {/* Right Column: VTube & Engine */}
       <div className="flex-1 flex flex-col gap-8 overflow-y-auto pr-4 custom-scrollbar">
         
-        {/* VTube Integration */}
+        {/* Telemetry & Hardware Monitor */}
         <div className="glass rounded-3xl border border-white/5 p-8">
-          <SectionHeader icon={Eye} title="Integração VTube Studio" subtitle="Conexão WebSocket Local" />
-          <div className="space-y-4">
-            <div className="p-4 rounded-xl glass border border-white/5 space-y-3">
-              <div className="flex justify-between items-center">
-                <div className="text-xs font-mono font-bold text-white uppercase tracking-wider">Porta WebSocket</div>
-                <div className="flex items-center gap-2">
-                  {vtubeStatus === 'connected' && <CheckCircle2 className="w-4 h-4 text-[#76B900]" />}
-                  {vtubeStatus === 'disconnected' && <XCircle className="w-4 h-4 text-red-500" />}
-                  {vtubeStatus === 'connecting' && <RefreshCw className="w-4 h-4 text-white/50 animate-spin" />}
-                  <span className="text-[10px] font-mono text-white/50 uppercase">
-                    {vtubeStatus === 'connected' ? 'Conectado' : vtubeStatus === 'connecting' ? 'Conectando...' : 'Desconectado'}
-                  </span>
-                </div>
-              </div>
-              <div className="flex gap-2">
-                <input 
-                  type="text" 
-                  value={vtubePort}
-                  onChange={(e) => setVtubePort(e.target.value)}
-                  className="w-24 bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-xs font-mono text-white focus:outline-none focus:border-[#00f3ff]"
-                  placeholder="8001"
-                />
-                <button 
-                  onClick={testVTubeConnection}
-                  className="flex-1 px-4 py-2 rounded-lg bg-[#00f3ff]/10 border border-[#00f3ff]/30 text-[#00f3ff] text-xs font-mono uppercase hover:bg-[#00f3ff]/20 transition-colors flex items-center justify-center gap-2"
-                >
-                  <LinkIcon className="w-4 h-4" />
-                  Testar Conexão
-                </button>
-              </div>
+          <SectionHeader icon={Activity} title="Telemetria de Hardware" subtitle="Monitoramento em Tempo Real" />
+          
+          <div className="grid grid-cols-2 gap-8 mb-8">
+            <div className="flex flex-col items-center gap-4">
+              <h3 className="text-[10px] font-mono text-neon-blue uppercase tracking-widest flex items-center gap-2">
+                <Cpu className="w-3 h-3" /> Carga do Processador
+              </h3>
+              <CircularRing 
+                value={sysInfo?.cpu?.load || 0} 
+                max={100} 
+                label={sysInfo?.cpu?.brand ? sysInfo.cpu.brand.split(' ')[0] : "CPU"} 
+                color="#00f3ff" 
+                icon={Cpu} 
+              />
             </div>
+            <div className="flex flex-col items-center gap-4">
+              <h3 className="text-[10px] font-mono text-neon-pink uppercase tracking-widest flex items-center gap-2">
+                <Database className="w-3 h-3" /> Memória do Sistema
+              </h3>
+              <CircularRing 
+                value={sysInfo?.mem?.used || 0} 
+                max={sysInfo?.mem?.total || 1} 
+                label="RAM" 
+                color="#ff007f" 
+                icon={Database} 
+              />
+            </div>
+          </div>
 
+          <div className="space-y-4">
             <SettingToggle 
               label="Microexpressões" 
               description="Espasmos faciais involuntários sub-20ms" 

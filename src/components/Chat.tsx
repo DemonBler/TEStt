@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, User, Bot, Terminal, Shield } from "lucide-react";
+import { Send, User, Bot, Terminal, Shield, Play } from "lucide-react";
 import { useSovereignStore } from "../store";
 
 export const Chat = () => {
@@ -14,6 +14,33 @@ export const Chat = () => {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [chatMessages]);
+
+  const runTests = async () => {
+    const actions = [
+      'turn_back', 'turn_forward', 'say_hello', 'wave', 'blink', 'open_mouth', 'close_mouth', 'move_jaw', 'show_teeth'
+    ];
+    
+    addChatMessage({
+      id: Date.now(),
+      user: "System",
+      text: "Iniciando sequência de testes de animação neural...",
+      type: "system",
+      color: "#00ff00",
+    });
+
+    for (let i = 0; i < actions.length; i++) {
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('neural_action', { detail: { action: actions[i] } }));
+        addChatMessage({
+          id: Date.now() + i,
+          user: "System",
+          text: `Executando: [ACTION:${actions[i]}]`,
+          type: "system",
+          color: "#00ff00",
+        });
+      }, i * 2000);
+    }
+  };
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,11 +64,23 @@ export const Chat = () => {
         body: JSON.stringify({ prompt: input, model: selectedModel }),
       });
       const data = await response.json();
+      let responseText = data.response || "Erro na resposta do Ollama.";
+      
+      // Parse ACTION tags
+      const actionRegex = /\[ACTION:([a-zA-Z_]+)\]/g;
+      let match;
+      while ((match = actionRegex.exec(responseText)) !== null) {
+        const action = match[1];
+        window.dispatchEvent(new CustomEvent('neural_action', { detail: { action } }));
+      }
+      
+      // Remove tags from displayed text
+      responseText = responseText.replace(actionRegex, '').trim();
       
       addChatMessage({
         id: Date.now() + 1,
         user: "Vaelindra",
-        text: data.response,
+        text: responseText,
         type: "ai",
         color: "#ff007f",
       });
@@ -71,9 +110,18 @@ export const Chat = () => {
             <p className="text-[10px] text-white/40 font-mono uppercase tracking-tighter">Integração Ollama Local</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="h-2 w-2 rounded-full bg-green-400 animate-pulse" />
-          <span className="text-[10px] font-mono text-green-400 uppercase tracking-widest">IA Online</span>
+        <div className="flex items-center gap-4">
+          <button 
+            onClick={runTests}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-neon-blue/10 border border-neon-blue/30 text-neon-blue text-[10px] font-mono uppercase hover:bg-neon-blue/20 transition-colors"
+          >
+            <Play className="w-3 h-3" />
+            Testar Animações
+          </button>
+          <div className="flex items-center gap-2">
+            <div className="h-2 w-2 rounded-full bg-green-400 animate-pulse" />
+            <span className="text-[10px] font-mono text-green-400 uppercase tracking-widest">IA Online</span>
+          </div>
         </div>
       </div>
 

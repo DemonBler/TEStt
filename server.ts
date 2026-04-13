@@ -16,35 +16,8 @@ const __dirname = path.dirname(__filename);
 
 // [Vaelindra Monolith] - Core Subsystems
 class SovereignCore {
-  private udpClient: dgram.Socket;
-  private vtubePort: number;
-  private vtubeHost: string;
-  private pipewireSource: string;
-
   constructor() {
-    this.udpClient = dgram.createSocket("udp4");
-    
-    // Load Environment Variables
-    this.vtubeHost = process.env.VTUBE_STUDIO_IP || "127.0.0.1";
-    this.vtubePort = parseInt(process.env.VTUBE_STUDIO_PORT || "8001");
-    this.pipewireSource = process.env.PIPEWIRE_VIRTUAL_SOURCE || "VaelindraAudio";
-
-    console.log(`[Sovereign Core] Initialized with:
-      - VTube Studio: ${this.vtubeHost}:${this.vtubePort}
-      - PipeWire Source: ${this.pipewireSource}`);
-  }
-
-  // [VTube Studio] - UDP Transmitter
-  sendToVTube(blendshapes: any) {
-    const packet = Buffer.from(JSON.stringify(blendshapes));
-    this.udpClient.send(packet, this.vtubePort, this.vtubeHost, (err) => {
-      if (err) console.error("[VTube UDP] Send Error:", err);
-    });
-  }
-
-  // [PipeWire] - Audio Routing
-  setupPipeWire() {
-    console.log(`[PipeWire] Initializing Virtual Source: ${this.pipewireSource}...`);
+    console.log(`[Sovereign Core] Initialized.`);
   }
 
   // [Local Ollama] - Ultra-Lightweight Local Neural Processing
@@ -61,7 +34,10 @@ class SovereignCore {
         body: JSON.stringify({
           model: ollamaModel,
           messages: [
-            { role: "system", content: "Você é Vaelindra, uma IA VTuber sem filtros, sarcástica e técnica. Responda de forma direta e brutal. Criada por Drevlan Noct." },
+            { 
+              role: "system", 
+              content: "Você é Vaelindra, uma IA VTuber sem filtros, sarcástica e técnica. Responda de forma direta e brutal. Criada por Drevlan Noct. IMPORTANTE: Você pode controlar seu corpo físico (avatar 3D). Para fazer isso, insira tags de ação no meio do seu texto. As tags disponíveis são: [ACTION:blink], [ACTION:look_left], [ACTION:look_right], [ACTION:nod], [ACTION:shake_head], [ACTION:smile], [ACTION:angry], [ACTION:sad], [ACTION:surprised], [ACTION:turn_back], [ACTION:turn_forward], [ACTION:wave], [ACTION:say_hello], [ACTION:open_mouth], [ACTION:close_mouth], [ACTION:show_teeth], [ACTION:move_jaw]. Exemplo: 'Eu não acredito que você fez isso [ACTION:shake_head] [ACTION:angry] seu idiota. Olhe para mim [ACTION:turn_forward] [ACTION:wave] oi.'" 
+            },
             { role: "user", content: prompt }
           ],
           stream: false
@@ -180,7 +156,7 @@ async function startServer() {
     console.log(`[Vaelindra Monolith] Server running on http://localhost:${PORT}`);
   });
 
-  // WebSocket Server for VMC/OSC Bridge
+  // WebSocket Server for Neural Bridge
   const wss = new WebSocketServer({ noServer: true });
 
   server.on("upgrade", (request, socket, head) => {
@@ -192,10 +168,10 @@ async function startServer() {
   });
 
   wss.on("connection", (ws) => {
-    console.log("[VMC Bridge] Client connected");
+    console.log("[Neural Bridge] Client connected");
     
     ws.on("message", (data) => {
-      // Broadcast VMC data to all clients (React frontend)
+      // Broadcast data to all clients (React frontend)
       wss.clients.forEach((client) => {
         if (client !== ws && client.readyState === WebSocket.OPEN) {
           client.send(data);
@@ -203,7 +179,7 @@ async function startServer() {
       });
     });
 
-    ws.on("close", () => console.log("[VMC Bridge] Client disconnected"));
+    ws.on("close", () => console.log("[Neural Bridge] Client disconnected"));
   });
 }
 

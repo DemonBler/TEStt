@@ -3,15 +3,11 @@ import { motion, AnimatePresence } from "framer-motion";
 import { 
   Monitor, 
   Zap, 
-  Activity, 
-  Share2, 
   Settings as SettingsIcon, 
-  ShieldAlert,
   Power
 } from "lucide-react";
 import { useSovereignStore } from "./store";
 import { Viewport } from "./components/Viewport";
-import { Telemetry } from "./components/Telemetry";
 import { Chat } from "./components/Chat";
 
 import { SettingsPanel } from "./components/SettingsPanel";
@@ -148,7 +144,6 @@ export default function App() {
           {/* Nav Links */}
           <nav className="flex flex-col gap-2">
             <NavItem id="home" icon={Monitor} label="Visualizador" color="neon-blue" activeTab={activeTab} setActiveTab={setActiveTab} />
-            <NavItem id="telemetry" icon={Activity} label="Telemetria" color="neon-blue" activeTab={activeTab} setActiveTab={setActiveTab} />
             <NavItem id="settings" icon={SettingsIcon} label="Soberano" color="white/40" activeTab={activeTab} setActiveTab={setActiveTab} />
           </nav>
         </div>
@@ -229,12 +224,6 @@ export default function App() {
                     <Chat />
                   </div>
                 </>
-              )}
-
-              {activeTab === "telemetry" && (
-                <div className="w-full h-full">
-                  <Telemetry />
-                </div>
               )}
 
               {activeTab === "settings" && (
