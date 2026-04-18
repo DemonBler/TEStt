@@ -42,56 +42,31 @@ export const Chat = () => {
   const [input, setInput] = useState("");
   const isListening = useSovereignStore((state) => state.isListening);
   const isPlaying = useSovereignStore((state) => state.isPlaying);
+  const isProcessingFile = useSovereignStore((state) => state.isProcessingFile);
   const [isAudioPaused, setIsAudioPaused] = useState(false);
   const [isMicMuted, setIsMicMuted] = useState(false);
-  const isProcessingFile = useSovereignStore((state) => state.isProcessing);
   const [isSTTLoading, setIsSTTLoading] = useState(false);
   const [sttProgress, setSTTProgress] = useState(0);
+  const [showDictionary, setShowDictionary] = useState(false);
+  
   const chatMessages = useSovereignStore((state) => state.chatMessages);
   const addChatMessage = useSovereignStore((state) => state.addChatMessage);
   const isLive = useSovereignStore((state) => state.isLive);
   const toggleLive = useSovereignStore((state) => state.toggleLive);
-  const visionEnabled = useSovereignStore(state => state.visionEnabled);
-  const visionSource = useSovereignStore(state => state.visionSource);
-  const setVisionSource = useSovereignStore(state => state.setVisionSource);
-  const twitchChannel = useSovereignStore(state => state.twitchChannel);
-  const organismState = useSovereignStore(state => state.organismState);
+  const visionEnabled = useSovereignStore((state) => state.visionEnabled);
+  const visionSource = useSovereignStore((state) => state.visionSource);
+  const setVisionSource = useSovereignStore((state) => state.setVisionSource);
+  const twitchChannel = useSovereignStore((state) => state.twitchChannel);
+  const organismState = useSovereignStore((state) => state.organismState);
+  const loadingProgress = useSovereignStore((state) => state.localAILoadingProgress);
+  const setProgress = useSovereignStore((state) => state.setLocalAILoadingProgress);
+  const isLocalReady = useSovereignStore((state) => state.isLocalAIReady);
+  const setIsLocalReady = useSovereignStore((state) => state.setIsLocalAIReady);
   
   const scrollRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
-  
   const currentAudioRef = useRef<HTMLAudioElement | null>(null);
-  
-  // Twitch Listener Queue
   const chatQueueRef = useRef<{user: string, message: string}[]>([]);
-  
-  useEffect(() => {
-    if (videoRef.current) {
-        quimeraCore.registerVisionSource(videoRef.current);
-    }
-
-    if (visionEnabled) {
-      const getStream = visionSource === 'screen' 
-        ? navigator.mediaDevices.getDisplayMedia({ video: true })
-        : navigator.mediaDevices.getUserMedia({ video: true });
-
-      getStream.then(stream => {
-        if (videoRef.current) videoRef.current.srcObject = stream;
-      }).catch(err => console.error(`${visionSource} Init Failed:`, err));
-    } else {
-      if (videoRef.current && videoRef.current.srcObject) {
-         const stream = videoRef.current.srcObject as MediaStream;
-         stream.getTracks().forEach(t => t.stop());
-         videoRef.current.srcObject = null;
-      }
-    }
-  }, [visionEnabled, visionSource]);
-
-  const [showDictionary, setShowDictionary] = useState(false);
-  const loadingProgress = useSovereignStore(state => state.localAILoadingProgress);
-  const setProgress = useSovereignStore(state => state.setLocalAILoadingProgress);
-  const isLocalReady = useSovereignStore(state => state.isLocalAIReady);
-  const setIsLocalReady = useSovereignStore(state => state.setIsLocalAIReady);
 
   useEffect(() => {
     if (!isLocalReady) {
@@ -112,6 +87,7 @@ export const Chat = () => {
   useEffect(() => {
     // Neural STT/TTS Initialization
     setIsSTTLoading(true);
+    /*
     Promise.all([
       loadSTT((p) => setSTTProgress(p)),
       loadTTS() // Adicionando inicialização do TTS
@@ -121,6 +97,8 @@ export const Chat = () => {
        console.error("Local Pipeline Load Failure:", e);
        setIsSTTLoading(false);
     });
+    */
+    setIsSTTLoading(false); // Manually set to false to bypass initialization
 
     if (isLive) {
       quimeraCore.wakeup();

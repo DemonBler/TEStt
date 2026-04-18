@@ -173,27 +173,35 @@ class QuimeraCore {
       let transcript = manualText;
       let visualContext = "";
 
-      const sttTask = !transcript ? transcribeLocally(new Blob(this.audioChunks, { type: 'audio/wav' })) : Promise.resolve(transcript);
-      const visionTask = (state.visionEnabled && this.videoRef) ? (async () => {
-        const canvas = document.createElement('canvas');
-        canvas.width = 224; canvas.height = 224;
-        const ctx = canvas.getContext('2d');
-        if (ctx && this.videoRef) {
-          ctx.drawImage(this.videoRef, 0, 0, 224, 224);
-          const caption = await captionImageLocally(canvas.toDataURL('image/jpeg'));
-          return caption ? `\n[Contexto Visual: ${caption}]` : "";
+      // Try STT but do not crash if it fails
+      try {
+        if (!transcript) {
+          transcript = await transcribeLocally(new Blob(this.audioChunks, { type: 'audio/wav' }));
         }
-        return "";
-      })() : Promise.resolve("");
+      } catch (sttError) {
+        console.warn("[QuimeraCore] STT failed, falling back to manual only:", sttError);
+        if (!transcript) {
+            state.setOrganismState("LISTENING");
+            this.isProcessing = false;
+            return;
+        }
+      }
 
-      const [sttRes, visRes] = await Promise.all([sttTask, visionTask]);
-      transcript = sttRes;
-      visualContext = visRes;
-      
-      const hasTranscript = transcript && transcript.trim().length > 2;
-      
-      if (hasTranscript) {
-        transcript = transcript!; 
+      if (transcript && transcript.trim().length > 2) {
+        // Re-adding Vision Task processing that was lost in the corrupted edit
+        const visionTask = (state.visionEnabled && this.videoRef) ? (async () => {
+          const canvas = document.createElement('canvas');
+          canvas.width = 224; canvas.height = 224;
+          const ctx = canvas.getContext('2d');
+          if (ctx && this.videoRef) {
+            ctx.drawImage(this.videoRef, 0, 0, 224, 224);
+            const caption = await captionImageLocally(canvas.toDataURL('image/jpeg'));
+            return caption ? `\n[Contexto Visual: ${caption}]` : "";
+          }
+          return "";
+        })() : Promise.resolve("");
+        
+        visualContext = await visionTask;
         const finalPrompt = transcript + visualContext;
         state.addChatMessage({ id: Date.now(), user: "Drevlan", text: transcript, type: "user", color: "#00f3ff" });
         await saveMemory('user', finalPrompt);
@@ -233,26 +241,36 @@ class QuimeraCore {
         });
         await saveMemory('ai', responseText);
 
-        // 6. SÍNTESE DE VOZ E LIP SYNC (MMS / GPT-SoVITS)
+        // 6. SÍNTESE DE VOZ E LIP SYNC (Gemini Neural TTS)
         const ttsPayload = await generateLocalTTS(responseText);
-        const samplingRate = (ttsPayload.type === 'float32' && ttsPayload.data.sampling_rate) ? ttsPayload.data.sampling_rate : 16000;
+        const { source, analyser: audioAnalyser } = playAudioBuffer(ttsPayload);
         
         state.setOrganismState("SPEAKING");
         state.setIsPlaying(true);
         (window as any).sovereignIsPlaying = true;
-        
-        const { source, analyser } = playAudioBuffer(ttsPayload, samplingRate);
-        
-        // Ativa o Lip Sync procedimental no Avatar
-        this.runLipSync(analyser);
+
+        // Loop de sincronia labial real baseado em amplitude
+        const lipSyncId = setInterval(() => {
+            const dataArray = new Uint8Array(audioAnalyser.frequencyBinCount);
+            audioAnalyser.getByteFrequencyData(dataArray);
+            
+            let sum = 0;
+            for (let i = 0; i < dataArray.length; i++) {
+                sum += dataArray[i];
+            }
+            const amplitude = sum / dataArray.length / 255;
+            useSovereignStore.getState().setMouthLevel(amplitude * 1.5); // Boost para visibilidade
+        }, 16); // 60fps aprox.
 
         await new Promise<void>((resolve) => {
-          source.onended = () => {
-            state.setIsPlaying(false);
-            (window as any).sovereignIsPlaying = false;
-            state.setOrganismState("LISTENING");
-            resolve();
-          };
+            source!.onended = () => {
+                clearInterval(lipSyncId);
+                useSovereignStore.getState().setMouthLevel(0);
+                state.setIsPlaying(false);
+                (window as any).sovereignIsPlaying = false;
+                state.setOrganismState("LISTENING");
+                resolve();
+            };
         });
         
         await emotionPromise;

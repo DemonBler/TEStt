@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { VRM } from '@pixiv/three-vrm';
 import { EXPRESSION_DICTIONARY } from './ExpressionDictionary';
+import { useSovereignStore } from '../store';
 export { EXPRESSION_DICTIONARY };
 
 export class NeuralKinematics {
@@ -11,6 +12,17 @@ export class NeuralKinematics {
   private isBlinking: boolean = false;
   private blinkDuration: number = 0;
   private currentAction: string = 'neutral';
+  private targetMouthOpen: number = 0;
+  private currentMouthOpen: number = 0;
+
+  // Lógica de interpolação suave
+  private lerp(current: number, target: number, speed: number) {
+    return current + (target - current) * speed;
+  }
+
+  public updateMouthIntensity(amplitude: number) {
+     this.targetMouthOpen = Math.min(amplitude * 2.0, 1.0); // Amplifica ligeiramente a leitura
+  }
 
   constructor(vrm: VRM) {
     this.vrm = vrm;
@@ -208,8 +220,11 @@ export class NeuralKinematics {
        // However, we can add a tiny bit of jitter to the lookAt target itself in VRMViewer if needed.
     }
 
+    // Lógica de Lip-Sync Suave (Procedural)
     if (this.vrm.expressionManager) {
-        this.vrm.expressionManager.update();
+      const mouthLevel = useSovereignStore.getState().mouthLevel;
+      this.currentMouthOpen = this.lerp(this.currentMouthOpen, mouthLevel, 0.25);
+      this.vrm.expressionManager.setValue('aa', this.currentMouthOpen); // aa é o padrão mais comum para boca aberta
     }
     
     this.vrm.update(delta);

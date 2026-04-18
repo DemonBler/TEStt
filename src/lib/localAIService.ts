@@ -93,12 +93,20 @@ export async function generateLocalResponse(prompt: string, history: any[] = [],
     
     const finalSystemPrompt = systemPromptOverride || SYSTEM_PROMPT;
     
-    const memoryMessage = memoryContext ? [{ role: "system", content: memoryContext }] : [];
+    // Combine system instructions with memory context to maintain a strict order:
+    // 1. Single 'system' message representing the persona and memory.
+    // 2. Chat history.
+    // 3. User prompt.
+    const combinedSystemInstructions = memoryContext 
+        ? `${finalSystemPrompt}\n\n[CONTEXTO DE MEMÓRIA]: ${memoryContext}` 
+        : finalSystemPrompt;
 
     const messages = [
-      { role: "system", content: finalSystemPrompt },
-      ...memoryMessage,
-      ...history.slice(-10).map(m => ({ role: m.type === "ai" ? "assistant" : "user", content: m.text })),
+      { role: "system", content: combinedSystemInstructions },
+      ...history.slice(-10).map(m => ({ 
+        role: m.type === "ai" ? "assistant" : "user", 
+        content: m.text 
+      })),
       { role: "user", content: prompt }
     ];
 
