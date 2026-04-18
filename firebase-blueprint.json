@@ -1,73 +1,41 @@
 {
   "entities": {
-    "User": {
-      "title": "User",
-      "description": "Perfil do usuário/operador do sistema Omni-Genesis.",
+    "UserProfile": {
+      "title": "User Profile",
+      "description": "Stores user preferences and basic profile info.",
       "type": "object",
       "properties": {
-        "uid": { "type": "string", "description": "ID único do Firebase Auth." },
-        "email": { "type": "string", "format": "email" },
+        "uid": { "type": "string", "description": "Unique user ID from Firebase Auth." },
         "displayName": { "type": "string" },
-        "role": { "type": "string", "enum": ["admin", "operator"], "description": "Nível de acesso ao sistema." },
-        "lastLogin": { "type": "string", "format": "date-time" }
+        "email": { "type": "string", "format": "email" },
+        "photoURL": { "type": "string", "format": "uri" },
+        "lastActive": { "type": "string", "format": "date-time" }
       },
       "required": ["uid", "email"]
     },
-    "ChatMessage": {
-      "title": "ChatMessage",
-      "description": "Histórico de interações entre o operador e a Vaelindra.",
+    "ChatSession": {
+      "title": "Chat Session",
+      "description": "Represents a conversation history.",
       "type": "object",
       "properties": {
-        "userId": { "type": "string" },
-        "role": { "type": "string", "enum": ["user", "model"] },
-        "text": { "type": "string" },
-        "timestamp": { "type": "string", "format": "date-time" },
-        "localSource": { "type": "string", "description": "Indica se a resposta veio de um modelo local (Ollama)." }
+        "uid": { "type": "string" },
+        "messages": {
+          "type": "array",
+          "items": { "type": "object" }
+        },
+        "updatedAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["userId", "role", "text", "timestamp"]
-    },
-    "SystemLog": {
-      "title": "SystemLog",
-      "description": "Logs de monitoramento de hardware e eventos do Windows Canary.",
-      "type": "object",
-      "properties": {
-        "type": { "type": "string", "enum": ["info", "warning", "error", "critical"] },
-        "message": { "type": "string" },
-        "source": { "type": "string", "description": "Componente que gerou o log (CPU, GPU, RAM, OBS, etc.)" },
-        "timestamp": { "type": "string", "format": "date-time" }
-      },
-      "required": ["type", "message", "timestamp"]
-    },
-    "MediaAsset": {
-      "title": "MediaAsset",
-      "description": "Metadados de mídias geradas localmente (Imagens, Vídeos, Áudios).",
-      "type": "object",
-      "properties": {
-        "userId": { "type": "string" },
-        "type": { "type": "string", "enum": ["image", "video", "audio"] },
-        "prompt": { "type": "string" },
-        "localPath": { "type": "string", "description": "Caminho no diretório D:\\Omni-Genesis." },
-        "timestamp": { "type": "string", "format": "date-time" }
-      },
-      "required": ["userId", "type", "prompt", "timestamp"]
+      "required": ["uid"]
     }
   },
   "firestore": {
     "/users/{userId}": {
-      "schema": "User",
-      "description": "Dados do perfil do operador."
+      "schema": "UserProfile",
+      "description": "Private user profiles."
     },
-    "/chats/{chatId}": {
-      "schema": "ChatMessage",
-      "description": "Mensagens do chat global ou por sessão."
-    },
-    "/logs/{logId}": {
-      "schema": "SystemLog",
-      "description": "Logs de auditoria do sistema."
-    },
-    "/assets/{assetId}": {
-      "schema": "MediaAsset",
-      "description": "Galeria de mídias geradas."
+    "/sessions/{sessionId}": {
+      "schema": "ChatSession",
+      "description": "Private chat records."
     }
   }
 }

@@ -1,6 +1,6 @@
 {
-  "name": "Vaelindra Monolith",
-  "description": "Extreme Canary System Engineering: NVIDIA ACE + Gemini 2.5 Flash integration for high-fidelity VTubing and system automation.",
+  "name": "Vaelindra Sovereign",
+  "description": "Núcleo Monólito de IA VTuber Soberana. Protocolo Canary Extreme: Inferência WebLLM Local, WebGPU e F.A.C.S. de 2500+ camadas.",
   "requestFramePermissions": [
     "camera",
     "microphone"
