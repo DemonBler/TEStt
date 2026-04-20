@@ -1,3 +1,16 @@
+/**
+ * MOTOR DE CINEMÁTICA NEURAL - NEURAL KINEMATICS (LOGIC CORE)
+ * Este arquivo contém a alma motora da Vaelindra, responsável por simular comportamentos biológicos em um modelo digital.
+ * Ele gerencia a complexa lógica de animação procedural, garantindo que o avatar pareça vivo mesmo em repouso.
+ * As principais sub-rotinas e sistemas presentes nesta classe são:
+ * 1. Sistema de Respiração Orgânica: Simula movimentos de tórax (Chest) e coluna (Spine) usando osciladores senoidais.
+ * 2. Algoritmo de Piscada Automática: Calcula intervalos aleatórios entre piscadas e executa a interpolação suave das pálpebras.
+ * 3. Gerenciamento de Micro-movimentos (Drift): Adiciona tremores rítmicos e naturais à cabeça e pescoço para evitar o efeito estatátua.
+ * 4. Processador de Visemas e Lip-Sync: Mapeia fonemas detectados (aa, ee, oo, etc.) e a amplitude do áudio diretamente na boca do VRM.
+ * 5. Sistema de Interpolação Linear (Lerp): Garante transições suaves entre expressões faciais, eliminando movimentos robóticos e bruscos.
+ * 6. Mapper de Expressões (F.A.C.S): Traduz sentimentos abstratos em valores específicos de BlendShapes com suporte a fallbacks de versões.
+ * 7. Neural Saccades: Simula o movimento rápido e imperceptível dos olhos que ocorre na visão humana para maior realismo.
+ */
 import * as THREE from 'three';
 import { VRM } from '@pixiv/three-vrm';
 import { EXPRESSION_DICTIONARY } from './ExpressionDictionary';

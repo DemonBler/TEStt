@@ -1,3 +1,16 @@
+/**
+ * COMPONENTE RAIZ - APPLICATION ENTRY POINT (APP.TSX)
+ * Este é o ponto de entrada principal da Vaelindra, responsável por montar a estrutura base da interface de usuário.
+ * Ele gerencia o layout global da aplicação e a navegação entre as diferentes seções do console de comando.
+ * As principais responsabilidades deste módulo raiz são:
+ * 1. Definir a estrutura de layout principal usando um design de painéis laterais e área de conteúdo principal.
+ * 2. Gerenciar a navegação de abas (Tabs) entre o "Main Controller" (onde o avatar habita) e o "Kernel" (configurações).
+ * 3. Inicializar ouvintes de eventos globais (Neural Events) para atualizar reativamente o status dos módulos do kernel.
+ * 4. Integrar o sistema de temas e estilos globais, garantindo uma estética coerente, futurística e de alta performance.
+ * 5. Servir como o contexto de montagem para os componentes críticos: Viewport (3D), Chat (Neural Hub) e SettingsPanel.
+ * 6. Facilitar a comunicação entre o Kernel lógico e a camada visual através da sincronização do useSovereignStore.
+ * 7. Prover a casca de proteção (Glassmorphism e Neon Borders) que define a identidade visual "Sovereign" da aplicação.
+ */
 import React, { useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 

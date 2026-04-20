@@ -1,3 +1,16 @@
+/**
+ * CÉREBRO LÍMBICO - REAÇÃO EMOCIONAL (LIMBIC SERVICE)
+ * Este módulo é o centro de processamento afetivo da Vaelindra, responsável por interpretar o tom das mensagens.
+ * Ele permite que a IA não apenas responda com texto, mas "sinta" a interação e reaja fisicamente no avatar.
+ * As principais responsabilidades deste serviço emocional são:
+ * 1. Executar análise de sentimento (Sentiment Analysis) localmente utilizando modelos Transformer (DistilBERT).
+ * 2. Classificar o input textual em categorias de positividade ou negatividade com alta confiança.
+ * 3. Mapear os resultados da análise diretamente para as chaves de intensidade (level_1 a level_20) do Expression Dictionary.
+ * 4. Implementar heurísticas de detecção de nuances para diferenciar entre sentimentos como Raiva (Angry) e Tristeza (Sorrow).
+ * 5. Monitorar o carregamento reativo do modelo límbico, fornecendo feedback de progresso para o Kernel.
+ * 6. Traduzir scores binários em expressões complexas que acionam o ExpressionManager do VRM em tempo real.
+ * 7. Garantir que a reação emocional ocorra de forma assíncrona, sem bloquear a geração de resposta do LLM principal.
+ */
 import { pipeline } from '@xenova/transformers';
 
 let classifier: any = null;

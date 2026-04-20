@@ -1,3 +1,16 @@
+/*
+ * MANIFESTO ESTÉTICO DO SISTEMA - GLOBAL STYLES (INDEX.CSS)
+ * Este arquivo define a identidade visual e o design de linguagem da Vaelindra Sovereign.
+ * Ele integra as utilidades do Tailwind CSS com personalizações de alta tecnologia.
+ * As principais definições e responsabilidades estilísticas deste módulo são:
+ * 1. Importação e Configuração de Tipografia Industrial: Utiliza Inter (Sans) e JetBrains Mono (Code).
+ * 2. Definição da Paleta Cromática Neon: Estabelece as variáveis de cor --neon-blue e --neon-pink.
+ * 3. Implementação de Efeitos de Glassmorphism: Cria a classe .glass para interfaces translúcidas e foscas.
+ * 4. Customização de Sombras Adaptativas: Define a classe .neon-text para efeitos de brilho persistente em textos.
+ * 5. Gerenciamento de Animações Próprias: Controla ciclos de brilho (pulse-glow) para indicadores de status.
+ * 6. Suporte a Modo de Transparência (Chroma Key): Define regras para tornar o body invisível em transmissões.
+ * 7. Estilização de utilitários ocultos: Gerencia o posicionamento de elementos de captura de hardware fora da tela.
+ */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap');
 @import "tailwindcss";
 

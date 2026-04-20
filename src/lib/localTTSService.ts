@@ -1,3 +1,15 @@
+/**
+ * SERVIÇO DE ENUNCIAÇÃO VOCAL - TEXT-TO-SPEECH (TTS SERVICE)
+ * Este módulo é a "corda vocal" da Vaelindra, responsável por converter as respostas de texto da IA em sons expressivos.
+ * O serviço integra três níveis de tecnologia para garantir que o avatar sempre tenha uma voz ativa:
+ * 1. Motor Nativo: Utiliza as vozes instaladas no sistema operacional do usuário via SpeechSynthesis API, ideal para baixo consumo de recursos.
+ * 2. Motor Neural Gemini: Conecta-se à API de última geração do Google para gerar vozes ultra-realistas com modulação emocional.
+ * 3. Motor Local Soberano: Suporta servidores locais como GPT-SoVITS, permitindo que o usuário utilize vozes customizadas e clonadas privadamente.
+ * Além da geração, este módulo gerencia o decodificador de áudio linear PCM (16-bit) e sua conversão para Float32 para reprodução via Web Audio API.
+ * O serviço também instanciou um AnalyserNode, que é fundamental para o sistema de Lip-Sync Reativo da aplicação.
+ * Toda a lógica de limpeza de texto (remoção de tags de [ACTION]) ocorre aqui antes do envio da string para os motores de áudio.
+ * O playAudioBuffer garante que o avatar comece a falar imediatamente após a recepção dos bytes, mantendo a latência mínima.
+ */
 import { useSovereignStore } from '../store';
 import { GoogleGenAI, Modality } from "@google/genai";
 
@@ -12,7 +24,37 @@ export const loadTTS = async (onProgress?: (p: number) => void) => {
 
 export const generateLocalTTS = async (text: string) => {
   const cleanText = text.replace(/\[ACTION:[a-zA-Z0-9_]+\]/g, '').trim();
-  
+  const state = useSovereignStore.getState();
+
+  // 1. Motor NATIVO (Navegador)
+  if (state.ttsEngine === 'native') {
+    return new Promise<{ type: 'web-speech' }>((resolve, reject) => {
+      const speech = new SpeechSynthesisUtterance(cleanText);
+      const voices = window.speechSynthesis.getVoices();
+      const ptVoice = voices.find(v => v.lang.startsWith('pt-BR')) || voices[0];
+      if (ptVoice) speech.voice = ptVoice;
+      speech.onend = () => resolve({ type: 'web-speech' });
+      speech.onerror = (e) => reject(e);
+      window.speechSynthesis.speak(speech);
+    });
+  }
+
+  // 2. Motor LOCAL (Ex: GPT-SoVITS)
+  if (state.ttsEngine === 'local') {
+    try {
+      const response = await fetch(`${state.ttsUrl}/tts?text=${encodeURIComponent(cleanText)}`);
+      const blob = await response.blob();
+      const arrayBuffer = await blob.arrayBuffer();
+      // Em um motor real local, converteríamos para base64 para manter o contrato
+      const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+      return { type: 'local-tts', data: base64 };
+    } catch (e) {
+      console.error("[TTS] Falha no motor local:", e);
+      throw e;
+    }
+  }
+
+  // 3. Motor GEMINI (Neural)
   if (!process.env.GEMINI_API_KEY) {
       throw new Error("GEMINI_API_KEY não configurada.");
   }

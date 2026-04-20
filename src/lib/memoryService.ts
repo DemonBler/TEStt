@@ -1,3 +1,16 @@
+/**
+ * SISTEMA DE MEMÓRIA PERSISTENTE - MEMORY SERVICE (LOCAL STORAGE/IDB)
+ * Este módulo gerencia o armazenamento de longo prazo de todas as interações da Vaelindra.
+ * Ele permite que a IA "lembre" de conversas passadas, criando uma continuidade de consciência digital.
+ * As principais responsabilidades deste serviço de arquivamento são:
+ * 1. Gerenciamento do banco de dados local IndexedDB (SovereignMemoryCore) para persistência robusta.
+ * 2. Implementação de um esquema de dados indexado por tempo, facilitando a recuperação cronológica veloz.
+ * 3. Armazenamento automático de mensagens de usuários e respostas da IA com metadados de timestamp.
+ * 4. Geração de Contexto de Memória (RAG Lite): Compila históricos passados em strings para enriquecer o prompt do LLM.
+ * 5. Suporte a resumos automáticos (Summarization) para otimizar o consumo de tokens em diálogos extensos.
+ * 6. Recuperação de memórias recentes com limites configuráveis, garantindo que o cérebro não transborde.
+ * 7. Execução totalmente offline no navegador do usuário, protegendo a privacidade absoluta do histórico de chat.
+ */
 import { openDB, DBSchema, IDBPDatabase } from 'idb';
 
 interface VectorMemoryDB extends DBSchema {

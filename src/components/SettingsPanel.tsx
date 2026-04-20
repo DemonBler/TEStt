@@ -1,3 +1,15 @@
+/**
+ * PAINEL DE CONTROLE DO KERNEL - SETTINGS PANEL (COMPONENT)
+ * Este módulo é o centro de comando administrativo da Vaelindra, permitindo o ajuste fino de todos os parâmetros do organismo.
+ * Ele centraliza as configurações de identidade, infraestrutura e interface, integrando diversos subcomponentes.
+ * As principais funcionalidades gerenciadas por este painel são:
+ * 1. Validação de Licenciamento Soberano, desbloqueando funcionalidades avançadas do núcleo através de chaves de ativação.
+ * 2. Injeção de Matrizes de Identidade via arquivos JSON, permitindo a mudança completa da personalidade e cenário da VTuber.
+ * 3. Monitoramento em tempo real do status de prontidão dos módulos individuais (STT, TTS, LLM) através de indicadores visuais.
+ * 4. Configuração de Percepção Visual, alternando entre fontes de vídeo (Webcam/Tela) e ativando o processamento multimodal.
+ * 5. Controle de interface para produtores de conteúdo, como o modo Chroma Key e o Inspetor de Anatomia VRM para depuração.
+ * 6. Integração direta com o componente CoreSettings para a sincronia rápida de hardware e modelos locais (Ollama/LM Studio).
+ */
 import React, { useRef } from 'react';
 import { useSovereignStore } from '../store';
 import { 
@@ -20,6 +32,7 @@ import {
 import { motion } from 'framer-motion';
 import { parseCharacterCardJSON } from '../lib/characterCardParser';
 import { CHARACTER_PRESETS } from '../lib/characterPresets';
+import { CoreSettings } from './CoreSettings';
 
 export const SettingsPanel = () => {
   const activeCharacterCard = useSovereignStore((state) => state.activeCharacterCard);
@@ -131,6 +144,10 @@ export const SettingsPanel = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 mb-20">
         <div className="space-y-12">
+           <section className="space-y-8">
+              <CoreSettings />
+           </section>
+
            <section className="space-y-8">
               <div className="flex items-center gap-4">
                  <div className="w-10 h-10 rounded-2xl bg-neon-blue/10 border border-neon-blue/20 flex items-center justify-center text-neon-blue">

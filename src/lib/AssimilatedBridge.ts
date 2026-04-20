@@ -1,3 +1,16 @@
+/**
+ * PONTE DE ASSIMILAÇÃO NEURAL - ASSIMILATED BRIDGE (KERNEL INTEGRATOR)
+ * Este módulo atua como uma camada de tradução e fusão entre diferentes paradigmas de arquitetura de VTubers.
+ * Ele foi projetado para integrar a lógica de workers e nodes do repositório LocalAIVtuber ao ambiente TypeScript.
+ * As principais responsabilidades deste componente são:
+ * 1. Simular o sistema de "Global State" original do LocalAIVtuber, permitindo a sincronia de variáveis entre módulos.
+ * 2. Implementar a arquitetura de Nodes (Input, LLM, TTS, VTuber), permitindo que dados fluam em uma pipeline dirigida.
+ * 3. Entrelaçar o fluxo de eventos do Riko Project com os processadores do LocalAIVtuber em uma única "Quimera".
+ * 4. Facilitar a comunicação assíncrona entre o núcleo de decisão (LLM) e os atuadores físicos (TTS e Visemes).
+ * 5. Mapear estados do Python-backend para o store reativo do Zustand, garantindo que a UI reflita a atividade do Kernel.
+ * 6. Prover um ponto único de entrada para injeção de comandos que devem ser processados por toda a cadeia de assimilação.
+ * 7. Gerenciar ouvintes de saídas de nodes (Output Listeners) para permitir a modularidade total dos componentes de IA.
+ */
 import { useSovereignStore } from "../store";
 import { generateLocalResponse } from "./localAIService";
 import { generateLocalTTS, playAudioBuffer } from "./localTTSService";

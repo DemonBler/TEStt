@@ -1,3 +1,15 @@
+/**
+ * SERVIÇO DE INTELIGÊNCIA ARTIFICIAL LOCAL - NEURAL CORE (LOCAL AI SERVICE)
+ * Este módulo é responsável por carregar e gerenciar os pesos dos modelos de linguagem (LLM) diretamente no navegador via WebGPU.
+ * Ele utiliza a biblioteca @mlc-ai/web-llm para executar modelos como Qwen2 e SmolLM de forma eficiente, sem depender de APIs externas.
+ * O serviço provê as seguintes funcionalidades críticas para a soberania da Vaelindra:
+ * 1. Inicialização dinâmica do motor MLC Engine, monitorando o progresso de download dos artefatos neurais para o cache local.
+ * 2. Gerenciamento de ciclo de vida do motor, permitindo o reset e troca de modelos em tempo real conforme a detecção de hardware.
+ * 3. Implementação de uma fila de tarefas (Task Lock) para garantir que múltiplas gerações de texto não colidam e travem o hardware.
+ * 4. Processamento de prompts de sistema complexos que definem a personalidade "Uncensored" e Soberana da VTuber.
+ * 5. Integração do "Cérebro Límbico", uma instância otimizada que classifica sentimentos para acionar Gatilhos de Expressão no avatar.
+ * 6. Suporte a fallbacks automáticos: se um modelo pesado falhar no carregar, o sistema tenta automaticamente uma versão mais leve.
+ */
 import { useSovereignStore } from "../store";
 
 let CreateMLCEngine: any;
@@ -21,6 +33,15 @@ joy, angry, sorrow, fun, surprised, relaxed, neutral. Do not return any other te
 let enginePromise: Promise<any> | null = null;
 let currentTask: Promise<any> = Promise.resolve();
 
+export async function resetEngine() {
+  if (engine) {
+    console.log("[localAIService] Descarregando motor anterior...");
+    await engine.unload();
+    engine = null;
+    enginePromise = null;
+  }
+}
+
 export async function getLocalAI(onProgress?: (p: number) => void): Promise<any> {
   if (engine) return engine;
   if (enginePromise) return enginePromise;
@@ -41,8 +62,8 @@ export async function getLocalAI(onProgress?: (p: number) => void): Promise<any>
         CreateMLCEngine = module.CreateMLCEngine;
       }
       
-      const selectedModel = "Qwen2-0.5B-Instruct-q4f16_1-MLC";
-      console.log(`[localAIService] Ativando a consciência mais leve e sem filtros: ${selectedModel}`);
+      const selectedModel = useSovereignStore.getState().llmModelId;
+      console.log(`[localAIService] Ativando consciência neural: ${selectedModel}`);
       
       engine = await CreateMLCEngine(
         selectedModel,

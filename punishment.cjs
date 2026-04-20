@@ -1,3 +1,16 @@
+/**
+ * GERADOR DE MATRIZES EMOCIONAIS - PUNISHMENT SCRIPT (DATA COMPILER)
+ * Este script é uma ferramenta de build-time responsável por gerar o dicionário massivo de expressões.
+ * Ele serve como o motor de expansão da capacidade expressiva da Vaelindra através de permutações.
+ * As principais responsabilidades deste script de "punição" são:
+ * 1. Gerar milhares de combinações únicas de pesos de BlendShape (Expressões) de forma matemática.
+ * 2. Implementar lógica de díades e interações complexas entre emoções base (Joy + Angry, etc.).
+ * 3. Garantir a unicidade de cada configuração facial através de verificações rigorosas de duplicatas JSON.
+ * 4. Compilar visemas, movimentos de olhos e suporte a ARKit em um único arquivo TypeScript consumível.
+ * 5. Atualizar automaticamente o arquivo ExpressionDictionary.ts com os novos dados gerados.
+ * 6. Refatorar o cabeçalho de NeuralKinematics.ts para garantir que as importações de tipos estejam corretas.
+ * 7. Prover telemetria sobre a quantidade total de expressões assimiladas no final do processo de execução.
+ */
 const fs = require('fs');
 const path = require('path');
 

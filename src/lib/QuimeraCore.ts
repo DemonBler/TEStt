@@ -1,3 +1,15 @@
+/**
+ * ORQUESTRADOR CENTRAL - QUIMERA CORE (SINCRONIZAÇÃO NEURAL E MULTIMODAL)
+ * Este arquivo é o motor principal da Vaelindra, responsável por integrar e fundir todas as capacidades da VTuber em um único ciclo de vida.
+ * Ele gerencia o processo de Voice Activity Detection (VAD) para ouvir o usuário, transcrever o áudio localmente e processar a visão computacional.
+ * O QuimeraCore é responsável por:
+ * 1. Coordenar a captura de áudio do microfone e detectar quando o usuário começou e parou de falar usando o Analisador de Audio Context.
+ * 2. Integrar a percepção visual, capturando frames da webcam ou tela e enviando para modelos de visão local (LMM) para contexto multimodal.
+ * 3. Gerenciar o fluxo de memória RAG (Retrieval-Augmented Generation), salvando interações e gerando prompts de sistema dinâmicos.
+ * 4. Orquestrar a resposta da IA e acionar paralelamente o "Cérebro Límbico" para que o avatar mude de expressão facial conforme o sentimento do texto.
+ * 5. Executar a síntese de voz (TTS) e realizar o Lip-Sync em tempo real, mapeando a amplitude do áudio diretamente nos blendshapes do VRM.
+ * 6. Garantir que o organismo digital não entre em conflito, pausando a escuta ativa enquanto a IA está respondendo fisicamente ao usuário.
+ */
 import { useSovereignStore } from "../store";
 import { transcribeLocally } from "./localSTTService";
 import { generateLocalResponse, analyzeEmotionLimbic } from "./localAIService";
@@ -7,17 +19,6 @@ import { buildSystemPromptFromCard } from "./characterCardParser";
 import { initLocalAIVtuberBridge } from "./AssimilatedBridge";
 import { captionImageLocally } from "./localVisionService";
 
-/**
- * QUIMERA CORE: Orquestrador Central Soberano
- * 
- * Este é o coração do sistema, responsável pela fusão total e funcional dos repositórios:
- * - LocalAIVtuber (Pipeline de Workers e Nodes)
- * - Riko Project (Identidade, ASR/TTS Pipeline)
- * - VTS Actions (Gatilhos de Expressão e OBS)
- * - Amica (Visão Multimodal Local)
- * 
- * O QuimeraCore mantém o organismo digital vivo, ouvindo e reagindo em loop contínuo.
- */
 class QuimeraCore {
   private static instance: QuimeraCore;
   private vadLoopId: number | null = null;

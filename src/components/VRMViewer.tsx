@@ -1,3 +1,16 @@
+/**
+ * VISUALIZADOR DE AVATAR VRM - SISTEMA DE RENDERIZAÇÃO 3D (VRM VIEWER)
+ * Este módulo é o motor gráfico da Vaelindra, responsável por carregar e animar o corpo virtual no espaço 3D.
+ * Ele utiliza Three.js e a biblioteca @pixiv/three-vrm para garantir total compatibilidade com o padrão VRM 1.0.
+ * As funcionalidades principais deste componente incluem:
+ * 1. Inicialização do WebGLRenderer com suporte a transparência para uso facilitado em Chroma Key (Fundo Verde).
+ * 2. Carregamento assíncrono de modelos .VRM com suporte completo a Drag-and-Drop de arquivos locais do usuário.
+ * 3. Gerenciamento de câmeras e iluminação dinâmica para garantir que o avatar seja visível em qualquer ambiente.
+ * 4. Implementação de Mouse Tracking: o avatar segue o cursor do usuário com os olhos e a cabeça em tempo real.
+ * 5. Integração com a classe NeuralKinematics para executar animações procedurais de respiração, piscada e movimentos cíclicos.
+ * 6. Suporte a ResizeObserver para garantir que a renderização se ajuste perfeitamente ao tamanho da janela ou container.
+ * 7. Dispatcher de eventos globais para capturar mudanças de expressão facial e sincronia labial emitidas pelo Kernel.
+ */
 import React, { useRef, useEffect, useState } from "react";
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';

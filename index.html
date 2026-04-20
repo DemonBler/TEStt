@@ -1,3 +1,16 @@
+<!--
+  SQUELETO ESTRUTURAL DO SISTEMA - MAIN HTML TEMPLATE (INDEX.HTML)
+  Este documento é a casca primordial que contém toda a aplicação Vaelindra Sovereign.
+  Ele define a estrutura de carregamento inicial e as configurações críticas de cabeçalho do navegador.
+  As principais funções e diretrizes presentes neste arquivo são:
+  1. Definição do Viewport: Configura a escala e o redimensionamento para garantir fidelidade em diferentes resoluções.
+  2. Ponto de Montagem do React: Provê o elemento <div id="root"> onde toda a interface é injetada.
+  3. Script de Bootstrap: Carrega o módulo principal /src/main.tsx para iniciar a execução do código TypeScript.
+  4. Mecanismo de Proteção Anti-Override: Implementa um script de segurança para prevenir a modificação indevida da API fetch.
+  5. Configuração Estética de Fundo: Define a cor base do body para evitar flashes brancos durante o carregamento inicial.
+  6. Gerenciamento de Assets de Favicon: Aponta para os ícones representativos da identidade visual da aplicação.
+  7. Controle de Overflow: Impede a aparição de barras de rolagem nativas para manter a imersão na interface "Glass".
+-->
 <!DOCTYPE html>
 <html lang="en">
   <head>

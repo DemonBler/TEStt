@@ -1,3 +1,16 @@
+/**
+ * INSPETOR DE ANATOMIA VIRTUAL - VRM ANATOMY INSPECTOR (DEBUG UI)
+ * Este componente provê uma interface de depuração profunda para os modelos VRM injetados na Vaelindra.
+ * Ele permite visualizar a estrutura interna e as capacidades técnicas do "corpo digital" em tempo real.
+ * As principais funcionalidades deste inspetor anatômico são:
+ * 1. Extração de BlendShapes: Lista todas as chaves de expressão disponíveis no modelo (ex: ARKit, VRM Standard).
+ * 2. Monitoramento de SpringBones: Analisa os grupos de física (cabelo, roupas) e seus parâmetros de rigidez e arrasto.
+ * 3. Verificação de Metadados: Exibe informações do autor, versão da spec VRM e diretrizes de uso do modelo.
+ * 4. Depuração de Expressões: Ajuda a identificar se um modelo possui as chaves necessárias para o ExpressionDictionary.
+ * 5. Visualização de Telemetria de Colisão: Mostra o raio de colisão configurado para os ossos de física.
+ * 6. Interface Flutuante Reativa: Utiliza Framer Motion para aparecer sobre o Viewport sem obstruir a visão total.
+ * 7. Integração com o Store: Ativado dinamicamente através do painel de configurações para sessões de manutenção.
+ */
 import React, { useState, useEffect } from "react";
 import { useSovereignStore } from "../store";
 import { Cpu, X } from "lucide-react";

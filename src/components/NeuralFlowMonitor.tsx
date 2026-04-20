@@ -1,3 +1,16 @@
+/**
+ * MONITOR DE FLUXO NEURAL - NEURAL FLOW MONITOR (VISUALIZER)
+ * Este componente provê uma visualização em tempo real da arquitetura de microsserviços da Vaelindra.
+ * Ele permite que o usuário monitore o caminho que um dado percorre, desde a entrada até a resposta física.
+ * As principais responsabilidades deste monitor visual são:
+ * 1. Mapear graficamente os diferentes repositórios assimilados (Vaelindra, Riko, LocalAIVtuber).
+ * 2. Exibir o status operacional de cada "Node" do sistema (Input, STT, Brain, TTS, VTS).
+ * 3. Fornecer feedback visual instantâneo sobre a saúde dos módulos através de códigos de cores neon.
+ * 4. Utilizar animações de pulso para indicar atividade de processamento em tempo real em cada etapa do fluxo.
+ * 5. Servir como uma ferramenta de diagnóstico rápido para identificar gargalos ou falhas na pipeline neural.
+ * 6. Apresentar os nomes dos repositórios fonte para manter a rastreabilidade da "Quimera" de software.
+ * 7. Integrar-se à UI principal de forma não intrusiva, mantendo a estética industrial e tecnocrática do núcleo.
+ */
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Cpu, Zap, Activity, Brain } from 'lucide-react';

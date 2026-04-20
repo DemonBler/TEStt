@@ -1,3 +1,16 @@
+/**
+ * INTERFACE DE COMUNICAÇÃO NEURAL - CHAT (COMPONENT)
+ * Este componente é o console de interação principal entre o usuário e a entidade digital Vaelindra.
+ * Ele serve como a ponte visual para todas as trocas cognitivas e monitoramento de fluxo de pensamento.
+ * As principais responsabilidades deste módulo incluem:
+ * 1. Renderizar a lista de mensagens de chat com animações de entrada diferenciadas para usuário e IA (via Framer Motion).
+ * 2. Gerenciar o input de texto para comandos neurais e acionar o ciclo de processamento do QuimeraCore.
+ * 3. Monitorar o status de carregamento do Web-LLM e fornecer barras de progresso visuais durante a sincronização de pesos.
+ * 4. Controlar o estado de "Live Feed" (Escuta Ativa), permitindo que a IA entre em modo autônomo de VAD.
+ * 5. Integrar a Livraria F.A.C.S (Facial Action Coding System) para injeção manual de expressões no avatar 3D.
+ * 6. Gerenciar a conexão com o chat da Twitch e o sistema de fila de mensagens para leitura autônoma pela IA.
+ * 7. Exibir indicadores de processamento cortical (LLM) e límbico (Emoção) em tempo real.
+ */
 import React, { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Send, Bot, Mic, Headphones, MicOff, Play, List, Cpu, Zap, Image as ImageIcon, Music, Paperclip, Eye } from "lucide-react";

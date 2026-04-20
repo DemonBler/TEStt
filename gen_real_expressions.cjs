@@ -1,3 +1,16 @@
+/**
+ * GERADOR DE EXPRESSÕES REAIS - GEN REAL EXPRESSIONS (BUILD UTILITY)
+ * Este script é um utilitário complementar de geração de dados faciais para a Vaelindra.
+ * Sua função é criar um dicionário de expressões focado em fidelidade ARKit e padrões VRM 1.0.
+ * As principais funcionalidades deste script de geração são:
+ * 1. Mapeamento de Emoções Básicas: Define os estados fundamentais (Joy, Angry, Sorrow) e suas variações de intensidade.
+ * 2. Implementação do Padrão ARKit: Mapeia mais de 50 blendshapes de rastreio facial profissional (mouthSmile, jawOpen, etc.).
+ * 3. Criação de Gaze Maps: Define como os olhos devem se mover para olhar em direções específicas (lookUp, lookLeft).
+ * 4. Geração de Combinações de Micro-Expressões: Cria estados conversacionais realistas como "escuta ativa" ou "suspiro".
+ * 5. Blends Sarcásticos e Assimétricos: Define movimentos de "lado único" na face para personalidades mais complexas.
+ * 6. Sobrescrita de NeuralKinematics.ts: Gera uma versão completa da classe de cinemática com o dicionário embutido.
+ * 7. Garantia de Unicidade: Utiliza loops matemáticos para criar centenas de combinações únicas, totalizando estados explícitos.
+ */
 const fs = require('fs');
 
 const dict = {};
