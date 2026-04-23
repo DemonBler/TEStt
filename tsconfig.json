@@ -14,8 +14,14 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
-    "jsx": "react-jsx"
+    "jsx": "react-jsx",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"],
+      "@framework/*": ["WebSDK/Framework/src/*"],
+      "@cubismsdksamples/*": ["WebSDK/src/*"]
+    }
   },
-  "include": ["src"],
+  "include": ["src", "WebSDK"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

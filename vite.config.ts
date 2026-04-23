@@ -11,18 +11,57 @@
  * 6. Suporte a Variáveis de Ambiente: Permite o roteamento seguro de chaves de API entre o sistema e o navegador.
  * 7. Estrutura de Build de Produção: Define como os assets estáticos devem ser empacotados para deploy final.
  */
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import tailwindcss from '@tailwindcss/vite'
+import { defineConfig, normalizePath } from 'vite';
+import path from 'path';
+import react from '@vitejs/plugin-react';
+import tailwindcss from '@tailwindcss/vite';
+import { viteStaticCopy } from 'vite-plugin-static-copy';
 
-// https://vitejs.dev/config/
 export default defineConfig({
   plugins: [
+    viteStaticCopy({
+      targets: [
+        {
+          src: normalizePath(path.resolve(__dirname, 'node_modules/@ricky0123/vad-web/dist/vad.worklet.bundle.min.js')),
+          dest: 'libs',
+        },
+        {
+          src: normalizePath(path.resolve(__dirname, 'node_modules/@ricky0123/vad-web/dist/silero_vad_v5.onnx')),
+          dest: 'libs',
+        },
+        {
+          src: normalizePath(path.resolve(__dirname, 'node_modules/@ricky0123/vad-web/dist/silero_vad_legacy.onnx')),
+          dest: 'libs',
+        },
+        {
+          src: normalizePath(path.resolve(__dirname, 'node_modules/onnxruntime-web/dist/*.wasm')),
+          dest: 'libs',
+        },
+        {
+          src: normalizePath(path.resolve(__dirname, 'WebSDK/Core/live2dcubismcore.js')),
+          dest: 'libs',
+        },
+      ],
+    }),
     react(),
     tailwindcss(),
   ],
+  resolve: {
+    alias: {
+      "@": path.resolve(__dirname, "./src"),
+      "@framework": path.resolve(__dirname, "./WebSDK/Framework/src"),
+      "@cubismsdksamples": path.resolve(__dirname, "./WebSDK/src"),
+    },
+  },
   server: {
     port: 3000,
     host: '0.0.0.0',
+    headers: {
+      "Cross-Origin-Opener-Policy": "same-origin",
+      "Cross-Origin-Embedder-Policy": "require-corp",
+    }
   },
-})
+  optimizeDeps: {
+    exclude: ['@mlc-ai/web-llm']
+  }
+});
