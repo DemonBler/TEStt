@@ -31,10 +31,21 @@ export const initSTT = () => {
 
 export const startListening = (): Promise<string> => {
   return new Promise((resolve, reject) => {
+    const state = useSovereignStore.getState();
+    const provider = state.sttProvider;
+    
+    if (provider === 'whisper') {
+      console.warn("[STT] Redirecionando áudio para Whisper Local em " + state.whisperUrl);
+      setTimeout(() => {
+         console.log("[STT-Whisper] Retorno simulado. O backend cuidará da transcrição do buffer via WebSocket.");
+         resolve(""); // In a real implementation we stream MediaRecorder buffer to WS
+      }, 500);
+      return;
+    }
+
     if (!recognition) initSTT();
     if (!recognition) return reject("STT Not Supported");
 
-    const state = useSovereignStore.getState();
     state.setIsListening(true);
     state.setSttStatus('active');
 

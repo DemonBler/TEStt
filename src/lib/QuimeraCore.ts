@@ -43,7 +43,7 @@ class QuimeraCore {
     state.addChatMessage({ id: Date.now(), user: "User", text, type: "user" });
 
     try {
-      const response = await aiService.generate(text, state.activeCharacterCard?.systemPrompt || "");
+      const response = await aiService.generate(text, state.activeCharacterCard?.system_prompt || "");
       
       state.addChatMessage({ 
         id: Date.now() + 1, 
